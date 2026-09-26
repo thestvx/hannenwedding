@@ -1,112 +1,157 @@
 # Hanene & Smail — Wedding Invitation
 
-A single, tall, mobile-first digital wedding card. One continuous vertical
-composition that scrolls like a printed invitation, set directly on its own
-paper. No envelope, no navigation, no panels.
+A single, tall, mobile-first digital wedding card that opens from a sealed
+envelope, then scrolls like a printed invitation. One continuous vertical
+composition, set directly on its own background. No panels, no navigation.
 
 **Hanene & Smail — 15 October 2026 — صالة عزوز للافراح والمناسبات**
 
 ---
 
+## The envelope gate
+
+On the very first visit the invitation is hidden behind a full-screen envelope
+with a wax seal.
+
+- The seal is a real `<button>` with `aria-label="افتح الدعوة"`, so it is
+  reachable and operable by keyboard and screen reader.
+- Pressing it plays the flap opening, a warm glow that blooms out past the
+  viewport, and the envelope dissolving. The invitation is revealed behind it.
+- The invitation then arms its scroll reveals and focus moves to the names.
+- `sessionStorage` key `hanene.gate.opened` means the gate is shown **once per
+  session**. Reloading or navigating back goes straight to the invitation.
+- The gate is `hidden` in the markup, so **with JavaScript off it never appears**
+  and the invitation renders normally.
+- Under `prefers-reduced-motion` the bloom becomes a plain short fade and the
+  timings collapse; the gate is still fully operable.
+
 ## The background is never treated
 
-`background/background02.png` (736 × 1104, 2:3) is placed as-is, full bleed,
-with `background-size: cover`. There is deliberately **no** overlay, scrim,
-vignette, grain, tint, gradient, opacity, blur, brightness or contrast change
-anywhere in the stylesheet. The only `background-color` in the project is on
-`html`/`body`, set to `#ece2d9` — a tone sampled from the image itself — and it
-sits *behind* the picture purely so mobile overscroll does not flash white.
+`background/background04.png` (941 × 1671, 9:16) is placed as-is, full bleed, on
+a fixed `.canvas` with `background-size: cover`. There is deliberately **no**
+overlay, scrim, vignette, grain, tint, gradient, opacity, blur, brightness or
+contrast change anywhere in the stylesheet — the fixed canvas keeps the artwork
+still while the text scrolls over it. The only `background-color` values are on
+`html`/`body` (overscroll colour, `#ecdcd8`) and on the gate (a solid
+`#e9d6d2`), both *behind* the picture, never over it.
 
-Legibility is solved with type colour, position, size and spacing instead.
+## The ink is sampled from the supplied artwork, not invented
 
-## The palette is sampled from the image, not invented
+Every supplied vector is the same warm near-black, `#392d2d` — measured from the
+pixels of `vectors/bsm.png`, `bark.png`, `date.png`, `gps.png` and `pin.png`.
+That value is `--ink`, so the text and the artwork read as one palette.
 
-The background is light and warm, so the type is dark and warm. Measured
-luminance of the paper is ~212/255, with the cleanest area at the centre
-(~230). Every ink tone below was chosen against real pixel values from the
-file, not by eye.
+`background04.png` is a light dusty rose overall (mean luminance ~182/255) but
+has a **dark bronze centre** (≈ `#92684c`, L≈111) that the text column crosses.
 
-| Token | Value | Worst measured contrast | Role |
-| --- | --- | --- | --- |
-| `--ink` | `#3f2d1f` | 9.8:1 | names, venue |
-| `--ink-2` | `#5a4433` | 6.8:1 | date |
-| `--ink-3` | `#6f5a45` | 5.0:1 | notes |
-| `--gold` | `#7d6134` | 4.3:1 | ornaments, ampersand |
-| `--gold-soft` | `#8f7043` | — | hairline rules |
-| `--paper` | `#ece2d9` | — | overscroll only, never over the image |
+| Token | Value | Role |
+| --- | --- | --- |
+| `--ink` | `#392d2d` | every text block |
+| `--ink-2` / `--ink-3` | `#4a3a39` / `#5b4745` | secondary tone |
+| `--gold` | `#7d6134` | hairlines, rules |
+| `--halo` | `#f7efe8` glow | legibility only, see below |
+| `--paper` | `#ecdcd8` | overscroll only, never over the image |
+| `--gate-bg` | `#e9d6d2` | solid envelope backdrop |
+
+### Legibility is a text effect, not an image effect
+
+Measured against the real background pixels, `#392d2d` on its own reaches 6.9:1
+over the median of the text column but drops to **1.7–3.0:1** where a block
+crosses the dark centre — on wide desktop viewports the `.detail` block has up
+to 89% of its box below the plain-AA threshold. So every text block carries a
+subtle light text-shadow (`--halo`) that becomes visible only where the
+background is dark and disappears where it is already light.
+
+This is a property of the **text**, not the picture: the image is still
+untouched. Verification models the halo conservatively at 75% effective
+coverage, and every block still clears 8.0:1. Raw ink-only contrast is reported
+alongside so the dependence on the halo is never hidden.
 
 ## Typography
 
-- **English** — `fonts/Bettrisia Script Alt Regular.otf` (`Bettrisia`), for
-  every English character on the page.
-- **Arabic** — `fonts/janna-2-thin.otf` (`Janna`), for every Arabic character.
+- **English** — `fonts/Bettrisia Script Alt Regular.otf` (`Bettrisia`).
+- **Arabic** — `fonts/janna-2-thin.otf` (`Janna`).
 
 Both are self-hosted via `@font-face` with `font-display: swap` and preloaded.
-There is no Google Fonts request and no Cormorant/Amiri anywhere in the
-project.
+No third-party font request anywhere in the project.
 
 > **Serve this over HTTP, not `file://`.** Chrome blocks `@font-face` on
 > `file://` (fonts are always fetched in CORS mode, and a `file://` origin is
-> `null`). Opening `index.html` directly will silently fall back to system
-> fonts. From the project root run `python -m http.server 8000` and open
+> `null`). Opening `index.html` directly silently falls back to system fonts.
+> From the project root run `python -m http.server 8000` and open
 > `http://localhost:8000`.
 
 ## Composition
 
-One `<article class="sheet">` in normal flow. There are no sections, cards,
-grids, borders or panels — the vertical rhythm is made purely of whitespace, so
-the whole thing reads as a single tall card. The order top to bottom:
+One `<main class="invitation">` in normal flow, over the fixed canvas. There
+are no cards, grids, borders or panels — the vertical rhythm is made purely of
+whitespace. The order top to bottom:
 
-1. botanical crown ornament
-2. the names, as the loudest element on the page
-3. broad rule with a lozenge
-4. the date
-5. the venue
-6. fine rule
-7. a long breath, then the two practical notes
-8. mirrored foot ornament
+1. chandelier — `vectors/thorya.png`
+2. Basmala calligraphy — `vectors/bsm.png`
+3. Baraka calligraphy — `vectors/bark.png`
+4. the opening verse, as two lines
+5. the names, as the loudest element on the page
+6. date (`vectors/date.png`) and venue (`vectors/gps.png`)
+7. the two practical notes, with `vectors/pin.png`
+8. hairline rules between the groups
 
-On a 390 × 844 phone the card is ~2.2 viewports tall. Desktop keeps the same
+The Arabic verse is stored with its **kashida/tatweel elongations exactly as
+supplied** — runs of 4, 5, 5, 7, 10, 9 and 18 on line one, and 6, 4, 5 and 8 on
+line two — and the verification asserts both the base letters and the
+elongation runs.
+
+On a 390 × 844 phone the card is ~2.3 viewports tall. Desktop keeps the same
 portrait column, centred, rather than going horizontal.
 
 ## Interaction
 
-There are no buttons. `script.js` only runs an `IntersectionObserver` that
-reveals each block as it scrolls into view (opacity, a short rise, a 3px blur
-that resolves). Each element is unobserved once shown.
+Beyond the gate, `script.js` runs an `IntersectionObserver` that reveals each
+block as it scrolls into view. Each element is unobserved once shown.
 
-- **Reduced motion** — the observer marks everything visible immediately and
-  the transform/blur are dropped; only a short opacity fade remains.
+- **Reduced motion** — the observer marks everything visible immediately and the
+  transform is dropped; only a short opacity fade remains.
 - **No JavaScript** — the hidden initial state is scoped to `.js [data-reveal]`,
-  so with JS off every element renders at full opacity. Nothing is ever
-  permanently hidden.
+  and the gate is `hidden` in the markup, so with JS off the invitation renders
+  complete and open.
 - **No `IntersectionObserver`** — falls back to showing everything.
 
 ## Verified
 
 Checked in real Chrome over CDP at 360×800, 375×812, 390×844, 393×852,
-414×896, 430×932, 768×1024, 1440×900 and 740×360, each in both normal and
-`prefers-reduced-motion` modes.
+414×896, 430×932, 768×1024, 1440×900 and 740×360.
 
+- gate appears on first visit, is skipped on revisit within a session, and is
+  fully removed under `prefers-reduced-motion`
+- the bloom animation actually fires (the class lands on the bloom element and
+  the CSS selector matches it)
 - no horizontal scrolling or clipping at any size; no child overflows the viewport
-- every text block meets WCAG AA against the **actual sampled background
-  pixels** behind it (names 9.8:1, date 6.8:1, venue 6.8:1, notes 5.0:1)
-- all 8 reveal blocks fire over a full scroll, in both motion modes
-- no console errors
-- both fonts confirmed loaded and applied
+- all 7 reveal blocks fire over a full scroll
+- all 6 images load; no console errors
+- every text block clears its WCAG AA target with the halo, at every scroll
+  position, at every size
+- the date, venue, both notes and both verse lines match the requested text
+  exactly, in the source and as rendered after the gate opens
 
 ## Files
 
 ```
-index.html                              markup + inline ornament sprite
+index.html                              markup, gate + invitation
 style.css                               the whole design
-script.js                               scroll reveals only
-background/background02.png             the paper, unmodified
+script.js                               gate, session state, scroll reveals
+background/background04.png             the background, unmodified
+vectors/thorya.png                      chandelier
+vectors/bsm.png                         Basmala calligraphy
+vectors/bark.png                        Baraka calligraphy
+vectors/date.png                        date icon
+vectors/gps.png                         venue icon
+vectors/pin.png                         notes icon
 fonts/Bettrisia Script Alt Regular.otf  English
 fonts/janna-2-thin.otf                  Arabic
 assets/svg/ornament-favicon.svg         favicon
 ```
 
+`background/background02.png`, `background/background03.png`,
 `background/background.jpg`, `assets/textures/paper-grain.svg` and
-`assets/svg/seal-favicon.svg` are left over from the previous envelope design.
-They are no longer referenced by anything and can be deleted.
+`assets/svg/seal-favicon.svg` are left over from earlier designs. They are no
+longer referenced by anything and can be deleted.

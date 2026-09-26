@@ -3,13 +3,13 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Hanene &amp; Smail — 15 October 2026</title>
-<meta name="description" content="Hanene &amp; Smail — 15 October 2026 — صالة عزوز للافراح والمناسبات">
-<meta name="theme-color" content="#ece2d9">
+<title>Hanene &amp; Smail — 15.10.2026</title>
+<meta name="description" content="Hanene &amp; Smail — 15 . 10 . 2026 — صالة عزوز للافراح والمناسبات">
+<meta name="theme-color" content="#e9d6d2">
 <meta name="color-scheme" content="light">
 
 <meta property="og:type" content="website">
-<meta property="og:title" content="Hanene &amp; Smail — 15 October 2026">
+<meta property="og:title" content="Hanene &amp; Smail — 15 . 10 . 2026">
 <meta property="og:description" content="صالة عزوز للافراح والمناسبات">
 
 <script>document.documentElement.className = "js";</script>
@@ -17,100 +17,116 @@
 <link rel="icon" href="assets/svg/ornament-favicon.svg" type="image/svg+xml">
 <link rel="preload" href="fonts/Bettrisia Script Alt Regular.otf" as="font" type="font/otf" crossorigin>
 <link rel="preload" href="fonts/janna-2-thin.otf" as="font" type="font/otf" crossorigin>
+<link rel="preload" href="background/background04.png" as="image">
 <link rel="stylesheet" href="style.css">
 </head>
 
 <body>
 
 <!-- =============================================================
+     THE GATE
+     First visit only: a sealed envelope. The wax seal is a real
+     button; pressing it cracks the seal, opens the flap, and a
+     warm light blooms out across the screen before the card is
+     revealed. The gate has its own solid backdrop, so background04
+     is never dimmed, tinted or overlaid at any point.
+     ============================================================= -->
+<div class="gate" id="gate" hidden>
+  <div class="gate__stage">
+    <div class="envelope" id="envelope">
+      <div class="envelope__card"></div>
+
+      <div class="envelope__body">
+        <span class="envelope__seam"></span>
+      </div>
+
+      <div class="envelope__flap"></div>
+
+      <button class="seal" id="seal" type="button" aria-label="افتح الدعوة">
+        <span class="seal__blob"></span>
+        <span class="seal__mark" aria-hidden="true">
+          <svg viewBox="0 0 40 40" focusable="false">
+            <path d="M20 6 C14 12 11 17 11 22 a9 9 0 0 0 18 0 c0-5-3-10-9-16 Z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/>
+            <path d="M20 30 v-9 M20 26 l4-3 M20 26 l-4-3" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
+          </svg>
+        </span>
+        <span class="seal__half seal__half--l" aria-hidden="true"></span>
+        <span class="seal__half seal__half--r" aria-hidden="true"></span>
+      </button>
+    </div>
+  </div>
+
+  <div class="bloom" id="bloom" aria-hidden="true"></div>
+</div>
+
+<!-- =============================================================
      THE CANVAS
-     background02.png, used exactly as supplied. No overlay, no
-     scrim, no vignette, no tint, no blur, no filter of any kind.
-     It is fixed so the long sheet scrolls over it like paper
-     moving beneath glass. The body colour is the image's own
-     dominant tone and exists only so overscroll does not flash
-     white -- it sits behind the image, never over it.
+     background04.png used exactly as supplied. No overlay, no
+     scrim, no vignette, no tint, no blur, no filter. Fixed so the
+     card scrolls over it like paper moving beneath glass.
      ============================================================= -->
 <div class="canvas" aria-hidden="true"></div>
 
 <!-- =============================================================
      THE INVITATION
-     One continuous column, not a stack of sections. There is no
-     card, no border, no panel, no background of its own: the
-     rhythm is made purely of whitespace, so the whole thing reads
-     as a single tall printed card.
+     One continuous column in normal flow. No sections, no cards,
+     no borders, no panels: the rhythm is whitespace only.
      ============================================================= -->
 <main class="invitation" id="invitation">
   <article class="sheet">
 
-    <!-- Crown ornament -->
-    <div class="orn orn--crown" data-reveal>
-      <svg viewBox="0 0 120 210" aria-hidden="true" focusable="false"><use href="#spray"/></svg>
+    <!-- chandelier, bismillah, baraka, then the verse -->
+    <header class="opening" data-reveal>
+      <img class="opening__chandelier" src="vectors/thorya.png" alt="" width="500" height="500" decoding="async">
+      <img class="opening__calligraphy opening__calligraphy--bsm" src="vectors/bsm.png" alt="" width="658" height="188" decoding="async">
+      <img class="opening__calligraphy opening__calligraphy--bark" src="vectors/bark.png" alt="" width="736" height="182" decoding="async">
+      <p class="verse" lang="ar">
+        لمن كان وصالهــــم وداداً دومـــــا على قلوبنـــــالازلنـــــــا بالأفــــــــــراح نحـــــــــب وصالكــــــــــــــــــم
+      </p>
+      <p class="verse verse--invite" lang="ar">
+        اتشــــــرّف بدعوتكــــم لحضور حفـــــل زفافــــــــي
+      </p>
+    </header>
+
+    <div class="rule rule--broad" data-reveal aria-hidden="true">
+      <i class="rule__line"></i><i class="rule__mark"></i><i class="rule__line"></i>
     </div>
 
-    <!-- The names: the loudest thing on the card, and nothing else competes -->
     <h1 class="names" data-reveal>
       <span class="names__line" lang="en" dir="ltr">Hanene</span>
       <span class="names__amp" lang="en" dir="ltr">&amp;</span>
       <span class="names__line" lang="en" dir="ltr">Smail</span>
     </h1>
 
-    <div class="rule rule--broad" data-reveal aria-hidden="true">
+    <div class="rule rule--fine" data-reveal aria-hidden="true">
       <i class="rule__line"></i><i class="rule__mark"></i><i class="rule__line"></i>
     </div>
 
-    <p class="date" data-reveal>
-      <time datetime="2026-10-15" lang="en" dir="ltr">15 October 2026</time>
-    </p>
-
-    <p class="venue" data-reveal>
-      <span lang="ar">صالة عزوز للافراح والمناسبات</span>
-    </p>
+    <!-- date and venue, each with its own mark -->
+    <div class="details" data-reveal>
+      <p class="detail" lang="en" dir="ltr">
+        <img class="detail__icon" src="vectors/date.png" alt="" width="512" height="512" decoding="async">
+        <span class="detail__value">15 . 10 . 2026</span>
+      </p>
+      <p class="detail" lang="ar">
+        <img class="detail__icon" src="vectors/gps.png" alt="" width="512" height="512" decoding="async">
+        <span class="detail__value">صالة عزوز للافراح والمناسبات</span>
+      </p>
+    </div>
 
     <div class="rule rule--fine" data-reveal aria-hidden="true">
       <i class="rule__line"></i><i class="rule__mark"></i><i class="rule__line"></i>
     </div>
 
-    <!-- The practical notes, held to the quiet end of the hierarchy -->
+    <!-- the practical notes, deliberately given more weight -->
     <div class="notes" data-reveal>
+      <img class="notes__icon" src="vectors/pin.png" alt="" width="512" height="512" decoding="async">
       <p class="notes__line" lang="ar">يمنع اصطحاب الأطفال</p>
       <p class="notes__line" lang="ar">ممنوع التصوير لطفلياً</p>
     </div>
 
-    <!-- Foot ornament, mirroring the crown -->
-    <div class="orn orn--foot" data-reveal>
-      <svg viewBox="0 0 120 210" aria-hidden="true" focusable="false"><use href="#spray"/></svg>
-    </div>
-
   </article>
 </main>
-
-<!-- =============================================================
-     ORNAMENT
-     Drawn once, reused. currentColor carries the tone so the
-     ornaments follow the palette rather than baking a colour in.
-     ============================================================= -->
-<svg class="sprite" aria-hidden="true" focusable="false" width="0" height="0">
-  <defs>
-    <symbol id="spray" viewBox="0 0 120 210">
-      <g fill="none" stroke="currentColor" stroke-width="1.15"
-         stroke-linecap="round" stroke-linejoin="round">
-        <!-- stem -->
-        <path d="M60 206 C60 150 60 84 60 30"/>
-        <!-- leaf pairs, largest at the base -->
-        <path d="M60 168 C42 160 30 144 27 124 C45 130 57 148 60 168 Z"/>
-        <path d="M60 168 C78 160 90 144 93 124 C75 130 63 148 60 168 Z"/>
-        <path d="M60 132 C44 124 34 108 32 90 C47 96 57 114 60 132 Z"/>
-        <path d="M60 132 C76 124 86 108 88 90 C73 96 63 114 60 132 Z"/>
-        <path d="M60 98 C48 90 41 76 40 60 C52 66 58 82 60 98 Z"/>
-        <path d="M60 98 C72 90 79 76 80 60 C68 66 62 82 60 98 Z"/>
-        <!-- bud -->
-        <path d="M60 30 C53 22 53 11 60 5 C67 11 67 22 60 30 Z"/>
-        <circle cx="60" cy="30" r="2.4" fill="currentColor" stroke="none"/>
-      </g>
-    </symbol>
-  </defs>
-</svg>
 
 <script src="script.js" defer></script>
 </body>
