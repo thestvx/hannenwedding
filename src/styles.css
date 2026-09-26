@@ -1,5 +1,5 @@
-/* =============================================================
-   Hanene & Smail — invitation
+﻿/* =============================================================
+   Hanene & Smail â€” invitation
    background03.png is the card, background04.png is the gate.
    Both are used exactly as supplied.
    ============================================================= */
@@ -20,13 +20,6 @@
      genuinely light (the top of background03 reaches L=204). This is a
      property of the text, not of the picture. */
   --halo: 0 0 10px rgba(22, 13, 11, 0.92), 0 0 3px rgba(22, 13, 11, 0.85);
-
-  /* the gate sits on background04, a light image, so the envelope reads as
-     a deeper dusty rose against it */
-  --env-body: #d9b3ae;
-  --env-flap: #ecd8d4;
-  --wax: #8e4a45;
-  --wax-lit: #a75c56;
 
   --gutter: clamp(1.35rem, 5.5vw, 2.5rem);
   --measure: 33rem;
@@ -125,11 +118,6 @@ body.is-sealed .invitation {
   mask-position: center;
 }
 
-.art--chandelier {
-  width: min(100%, 26rem);
-  margin-bottom: 5svh;
-}
-
 .art--calligraphy {
   width: min(100%, 19rem);
   margin-inline: auto;
@@ -166,7 +154,8 @@ body.is-sealed .invitation {
   text-wrap: pretty;
 }
 
-.verse--invite {
+/* the invitation line sits a little further from the verse above it */
+.verse:last-of-type {
   margin-top: 4svh;
 }
 
@@ -290,6 +279,7 @@ body.is-sealed .invitation {
 
 /* --- scroll reveals (everything except the names) --------------------- */
 
+/* rises and fades as it is reached: the rules, the details, the notes */
 [data-reveal] {
   opacity: 0;
   transform: translateY(1.15rem);
@@ -303,269 +293,85 @@ body.is-sealed .invitation {
     transform 1.15s cubic-bezier(0.22, 0.61, 0.36, 1);
 }
 
+/* fades only, with no travel: the bismillah and the verse */
+[data-fade] {
+  opacity: 0;
+}
+
+[data-fade].is-in {
+  opacity: 1;
+  transition: opacity 1.05s ease;
+}
+
+/* --- the chandelier ---------------------------------------------------
+   Dropped in from above the page once the gate is gone. The offset is a share
+   of the viewport rather than a rem, so it clears the top edge on a short
+   landscape screen too.
+   The animation is armed by .is-open rather than running on load: the
+   invitation is mounted (and hidden) behind the gate, so a plain animation
+   would play unseen and be over before the visitor ever saw it. */
+
+.art--chandelier {
+  width: min(100%, 26rem);
+  margin-bottom: 5svh;
+  opacity: 0;
+}
+
+.invitation.is-open .art--chandelier {
+  animation: chandelier-drop 1.15s cubic-bezier(0.22, 0.61, 0.36, 1) forwards;
+}
+
+@keyframes chandelier-drop {
+  from {
+    opacity: 0;
+    transform: translateY(-85vh);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
 /* ============================== the gate ==============================
-   Shown first, on background04.png. Pressing anywhere opens it.
+   Shown first, on background04.png. No envelope, no seal: the background
+   itself is the button, so a press anywhere on it enters.
    ==================================================================== */
 
 .gate {
   position: fixed;
   inset: 0;
   z-index: 40;
-  display: grid;
-  place-items: center;
-  cursor: pointer;
-  /* set inline from BASE_URL; background04 is the gate */
+  display: block;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  /* the <button> reset, so the background fills the screen exactly */
+  appearance: none;
+  -webkit-appearance: none;
+  background-color: transparent;
   background-repeat: no-repeat;
   background-position: 50% 50%;
   background-size: cover;
-  -webkit-tap-highlight-color: transparent;
-}
-
-.gate__stage {
-  position: relative;
-  width: min(78vw, 21rem);
-  aspect-ratio: 1.42 / 1;
-  perspective: 1400px;
-}
-
-.gate__hint {
-  position: absolute;
-  left: 0;
-  right: 0;
-  bottom: -3.2rem;
-  margin: 0;
-  text-align: center;
-  font-size: 0.95rem;
-  letter-spacing: 0.04em;
-  color: #6b4a45;
-  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.5);
-  opacity: 0.85;
-  transition: opacity 0.3s linear;
-}
-
-.is-opening .gate__hint {
-  opacity: 0;
-}
-
-.envelope {
-  position: absolute;
-  inset: 0;
-}
-
-.envelope__card {
-  position: absolute;
-  left: 6%;
-  right: 6%;
-  top: 12%;
-  bottom: 0;
-  border-radius: 0.35rem;
-  background-color: #f6eae6;
-  box-shadow: 0 0.4rem 1.4rem rgba(57, 45, 45, 0.16);
-  transform: translateY(0);
-  transition: transform 0.7s cubic-bezier(0.22, 0.61, 0.36, 1);
-}
-
-.envelope__body {
-  position: absolute;
-  inset: 0;
-  border-radius: 0.4rem;
-  background-color: var(--env-body);
-  box-shadow: 0 0.6rem 1.8rem rgba(57, 45, 45, 0.2);
-  overflow: hidden;
-}
-
-.envelope__body::before,
-.envelope__body::after {
-  content: '';
-  position: absolute;
-  top: 0;
-  bottom: 0;
-  width: 52%;
-  background-color: var(--env-body);
-}
-
-.envelope__body::before {
-  left: 0;
-  clip-path: polygon(0 0, 100% 0, 0 100%);
-}
-
-.envelope__body::after {
-  right: 0;
-  clip-path: polygon(0 0, 100% 0, 100% 100%);
-}
-
-.envelope__seam {
-  position: absolute;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  height: 46%;
-  background-color: var(--env-flap);
-  clip-path: polygon(0 100%, 50% 0, 100% 100%);
-}
-
-.envelope__flap {
-  position: absolute;
-  left: 0;
-  right: 0;
-  top: 0;
-  height: 54%;
-  background-color: var(--env-flap);
-  clip-path: polygon(0 0, 100% 0, 50% 100%);
-  transform-origin: 50% 0;
-  transform: rotateX(0deg);
-  transition: transform 0.75s cubic-bezier(0.5, 0, 0.2, 1);
-  z-index: 3;
-  backface-visibility: hidden;
-}
-
-.is-opening .envelope__flap {
-  transform: rotateX(-172deg);
-}
-
-.is-opening .envelope__card {
-  transform: translateY(-9%);
-}
-
-.seal {
-  position: absolute;
-  left: 50%;
-  top: 46%;
-  z-index: 4;
-  width: 27%;
-  aspect-ratio: 1;
-  transform: translate(-50%, -50%);
-  padding: 0;
-  border: 0;
-  border-radius: 50%;
-  background: none;
   cursor: pointer;
-  color: var(--wax);
-  transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.35s linear;
+  /* the only focus ring that ever shows: a full-bleed button has no
+     visible edge to outline, so this is inset to sit inside the screen */
+  outline: none;
+  -webkit-tap-highlight-color: transparent;
+  transition: opacity 0.6s ease;
 }
 
-.seal__blob {
-  position: absolute;
-  inset: 0;
-  border-radius: 46% 54% 52% 48% / 50% 46% 54% 50%;
-  background: radial-gradient(
-    circle at 34% 28%,
-    var(--wax-lit) 0%,
-    var(--wax) 46%,
-    #6f3835 100%
-  );
-  box-shadow:
-    inset 0 0.12rem 0.3rem rgba(255, 235, 225, 0.32),
-    inset 0 -0.15rem 0.35rem rgba(50, 20, 20, 0.45),
-    0 0.2rem 0.5rem rgba(57, 45, 45, 0.35);
+.gate:focus-visible {
+  box-shadow: inset 0 0 0 3px rgba(107, 74, 69, 0.75);
 }
 
-.seal__blob::after {
-  content: '';
-  position: absolute;
-  inset: 5%;
-  border-radius: 50%;
-  border: 1px dashed rgba(255, 226, 214, 0.28);
-}
-
-.seal__mark {
-  position: absolute;
-  inset: 26%;
-  opacity: 0.62;
-}
-
-.seal__mark svg {
-  width: 100%;
-  height: 100%;
-  color: #f6ddd4;
-}
-
-.seal__half {
-  position: absolute;
-  top: 0;
-  bottom: 0;
-  width: 50%;
-  opacity: 0;
-  transition: transform 0.5s cubic-bezier(0.5, 0, 0.3, 1), opacity 0.4s linear;
-  z-index: 5;
-}
-
-/* the halves that snap the seal apart are filled with the average tone of
-   background04 so they read as the picture breaking open, not a colour change */
-.seal__half--l {
-  left: 0;
-  transform: translateX(0);
-  border-radius: 46% 0 0 54% / 50% 46% 54% 50%;
-  background: linear-gradient(90deg, #d7b1af 0%, #e2bcba 100%);
-}
-
-.seal__half--r {
-  right: 0;
-  transform: translateX(0);
-  border-radius: 0 54% 52% 48% / 46% 50% 50% 54%;
-  background: linear-gradient(90deg, #e2bcba 0%, #d7b1af 100%);
-}
-
-.is-opening .seal {
-  transform: translate(-50%, -50%) scale(0.72) rotate(-14deg);
+/* fade the background out to hand over to the invitation */
+.gate.is-opening {
   opacity: 0;
   pointer-events: none;
 }
 
-.is-opening .seal__half--l {
-  transform: translateX(-135%) rotate(-16deg);
-  opacity: 1;
-}
-
-.is-opening .seal__half--r {
-  transform: translateX(135%) rotate(16deg);
-  opacity: 1;
-}
-
-.seal:focus-visible {
-  outline: 2px solid #6b4a45;
-  outline-offset: 0.35rem;
-}
-
-/* the glow that carries background04 into the invitation */
-.bloom {
-  position: fixed;
-  left: 0;
-  top: 0;
-  z-index: 50;
-  width: 40vmax;
-  height: 40vmax;
-  margin: -20vmax 0 0 -20vmax;
-  border-radius: 50%;
-  pointer-events: none;
-  opacity: 0;
-  transform: scale(0.05);
-  background: radial-gradient(
-    circle,
-    rgba(255, 251, 245, 0.98) 0%,
-    rgba(255, 240, 228, 0.86) 32%,
-    rgba(250, 224, 206, 0.5) 58%,
-    rgba(245, 214, 196, 0) 74%
-  );
-}
-
-.bloom.is-blooming {
-  animation: bloom 1.15s cubic-bezier(0.16, 0.8, 0.3, 1) forwards;
-}
-
-@keyframes bloom {
-  0% {
-    opacity: 0;
-    transform: scale(0.05);
-  }
-  22% {
-    opacity: 0.95;
-  }
-  100% {
-    opacity: 0;
-    transform: scale(2.6);
-  }
-}
 
 /* ============================== responsive ============================== */
 
@@ -601,6 +407,12 @@ body.is-sealed .invitation {
 }
 
 @media (prefers-reduced-motion: reduce) {
+  /* the chandelier arrives, but it does not travel: opacity only, no drop */
+  .invitation.is-open .art--chandelier {
+    animation: none;
+    opacity: 1;
+  }
+
   [data-reveal] {
     transform: none;
   }
@@ -609,29 +421,11 @@ body.is-sealed .invitation {
     transition: opacity 0.4s linear;
   }
 
-  .bloom.is-blooming {
-    animation: bloom-plain 0.6s linear forwards;
+  [data-fade].is-in {
+    transition: opacity 0.4s linear;
   }
 
-  @keyframes bloom-plain {
-    0% {
-      opacity: 0;
-      transform: none;
-    }
-    30% {
-      opacity: 0.9;
-    }
-    100% {
-      opacity: 0;
-      transform: none;
-    }
-  }
-
-  .envelope__flap,
-  .envelope__card,
-  .seal,
-  .seal__half,
-  .gate__hint {
-    transition-duration: 0.01ms;
+  .gate {
+    transition-duration: 0.2s;
   }
 }

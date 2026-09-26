@@ -16,19 +16,28 @@ const asset = (p) => new URL(p.replace(/^\//, ''), document.baseURI).href;
 
 // Held as string literals rather than JSX text: JSX collapses newlines and
 // indentation between text nodes, which would put the spacing around the verse
-// at the mercy of the formatter. The kashida runs are exactly as supplied.
-const VERSE_ONE =
-  'لمن كان وصالهــــم وداداً دومـــــا على قلوبنـــــالازلنـــــــا بالأفــــــــــراح نحـــــــــب وصالكــــــــــــــــــم';
-const VERSE_TWO = 'اتشــــــرّف بدعوتكــــم لحضور حفـــــل زفافــــــــي';
+// at the mercy of the formatter. The kashida runs are exactly as supplied, and
+// each line is its own element so it can fade in on its own.
+const VERSE = [
+  'لمــــن كـــــــــــان وصالهــــم وداداً دومـــــا على قلوبنـــــا',
+  'لازلنـــــــا بالأفــــــــــراح نحـــــــــب وصالكــــــــــــــــــم',
+  'اتشــــــرّف بدعوتكــــم لحضور حفـــــل زفافــــــــي'
+];
 
 /**
- * Every supplied vector is a single warm near-black (#392d2d) drawing on a
- * transparent ground. Because it is monochrome with real alpha, it is used as
- * a CSS mask and filled with a light tone: the shapes, proportions and
- * antialiasing are the original pixels, only the colour changes to suit the
- * dark background03.
+ * The bismillah, the icons and the chandelier are all used as CSS masks: the
+ * shape, proportions and antialiasing are the original pixels' alpha, and only
+ * the fill changes.
+ *
+ * The fill is not uniform, and deliberately so. --art-tone is a light cream,
+ * which is what the bismillah and the icons need because they sit on the dark
+ * middle of background03. The chandelier sits at the very top, where that
+ * background is light (median luminance 172/255), so a light fill would score
+ * only 2.1:1 against it and read as a smudge. It takes the supplied near-black
+ * #392d2d instead, which scores 3.9:1 there -- the same colour family as the
+ * bismallah, but chosen for the ground it actually stands on.
  */
-function Art({ file, ratio, className = '' }) {
+function Art({ file, ratio, tone, className = '', ...rest }) {
   const url = `url("${asset(file)}")`;
   return (
     <span
@@ -36,9 +45,11 @@ function Art({ file, ratio, className = '' }) {
       style={{
         maskImage: url,
         WebkitMaskImage: url,
-        aspectRatio: String(ratio)
+        aspectRatio: String(ratio),
+        ...(tone ? { backgroundColor: tone } : null)
       }}
       aria-hidden="true"
+      {...rest}
     />
   );
 }
@@ -116,7 +127,12 @@ export default function Invitation({ revealed, focusNames = false }) {
     const root = rootRef.current;
     if (!root) return undefined;
 
-    const targets = Array.from(root.querySelectorAll('[data-reveal]'));
+    // Two groups, two behaviours:
+    //   [data-reveal] rises and fades as it is reached
+    //   [data-fade]   fades only, with no travel
+    // The names are driven by GSAP ScrollFloat instead, and are in neither
+    // group, so no two systems ever write to the same element's opacity.
+    const targets = Array.from(root.querySelectorAll('[data-reveal], [data-fade]'));
     if (!targets.length) return undefined;
 
     if (typeof IntersectionObserver === 'undefined') {
@@ -170,28 +186,44 @@ export default function Invitation({ revealed, focusNames = false }) {
         style={{ backgroundImage: `url("${asset('background/background03.png')}")` }}
       />
 
-      <main className="invitation" id="invitation" ref={rootRef}>
+      <main
+        className={`invitation${revealed ? ' is-open' : ''}`}
+        id="invitation"
+        ref={rootRef}
+      >
         <article className="sheet">
-          <header className="opening" data-reveal>
-            {/* the chandelier is large and anchored to the very top of the page */}
-            <Art file="vectors/thorya.png" ratio={500 / 500} className="art--chandelier" />
+          <header className="opening">
+            {/* Large, anchored to the very top of the page, and dropped in from
+                above on entry. 358x376 is its real intrinsic size, so the
+                aspect-ratio is 0.952 and not 1 -- forcing 1:1 would squash it. */}
+            <Art
+              file="vectors/thorya.png"
+              ratio={358 / 376}
+              tone="#392d2d"
+              className="art--chandelier"
+            />
+
             <Art
               file="vectors/bsm.png"
               ratio={658 / 188}
               className="art--calligraphy art--bsm"
+              data-fade
             />
             <Art
               file="vectors/bark.png"
               ratio={736 / 182}
               className="art--calligraphy art--bark"
+              data-fade
             />
 
-            <p className="verse" lang="ar">
-              {VERSE_ONE}
-            </p>
-            <p className="verse verse--invite" lang="ar">
-              {VERSE_TWO}
-            </p>
+            {/* One element per line so each fades in on its own as it is
+                reached. The kashida runs inside each string are the supplied
+                ones, untouched. */}
+            {VERSE.map((line) => (
+              <p className="verse" lang="ar" data-fade key={line}>
+                {line}
+              </p>
+            ))}
           </header>
 
           <div className="rule rule--broad" data-reveal aria-hidden="true">
