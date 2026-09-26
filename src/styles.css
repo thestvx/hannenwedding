@@ -1,0 +1,637 @@
+/* =============================================================
+   Hanene & Smail — invitation
+   background03.png is the card, background04.png is the gate.
+   Both are used exactly as supplied.
+   ============================================================= */
+
+:root {
+  /* background03 is a dark image: its dominant tones are #443333 and
+     #333322, and its middle and lower thirds sit around L=64-108. */
+  --paper: #443333;
+  --ink: #f4e8dc;
+  --ink-2: #e9d5c4;
+  --ink-3: #dbc0ac;
+  --gold: #e3bd85;
+
+  /* the tone the masked artwork is filled with */
+  --art-tone: #f2ddc7;
+
+  /* Light type on a dark image needs a dark halo for the few bands that are
+     genuinely light (the top of background03 reaches L=204). This is a
+     property of the text, not of the picture. */
+  --halo: 0 0 10px rgba(22, 13, 11, 0.92), 0 0 3px rgba(22, 13, 11, 0.85);
+
+  /* the gate sits on background04, a light image, so the envelope reads as
+     a deeper dusty rose against it */
+  --env-body: #d9b3ae;
+  --env-flap: #ecd8d4;
+  --wax: #8e4a45;
+  --wax-lit: #a75c56;
+
+  --gutter: clamp(1.35rem, 5.5vw, 2.5rem);
+  --measure: 33rem;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  background-color: var(--paper);
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  min-height: 100svh;
+  background-color: var(--paper);
+  color: var(--ink);
+  font-family: 'Janna', 'Segoe UI', system-ui, sans-serif;
+  font-weight: 300;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  overflow-x: hidden;
+}
+
+body.is-sealed {
+  overflow: hidden;
+}
+
+body.is-sealed .invitation {
+  visibility: hidden;
+}
+
+/* ============================== the card ============================== */
+
+.canvas {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  /* the image itself is set inline from BASE_URL, so it stays correct under a
+     repository sub-path */
+  background-repeat: no-repeat;
+  background-position: 50% 50%;
+  background-size: cover;
+}
+
+.invitation {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  padding-inline: var(--gutter);
+  /* the chandelier is anchored to the very top of the page, so there is very
+     little air above it */
+  padding-block: 2svh 30svh;
+}
+
+.sheet {
+  max-width: var(--measure);
+  margin-inline: auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
+
+.opening {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+}
+
+/* --- the masked artwork ---------------------------------------------
+   Each vector is used as a mask so its original alpha shapes are kept
+   exactly and only the colour is replaced. aspect-ratio is set per asset
+   in the markup, so nothing is ever stretched.
+   ------------------------------------------------------------------- */
+
+.art {
+  display: block;
+  flex: 0 0 auto;
+  width: 100%;
+  background-color: var(--art-tone);
+  /* mask-image is set inline as an absolute URL. It cannot be left to a
+     relative url() here: this rule lives in the bundled stylesheet under
+     /assets/, so "./vectors/x.png" would resolve to /assets/vectors/x.png. */
+  -webkit-mask-size: contain;
+  mask-size: contain;
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
+  -webkit-mask-position: center;
+  mask-position: center;
+}
+
+.art--chandelier {
+  width: min(100%, 26rem);
+  margin-bottom: 5svh;
+}
+
+.art--calligraphy {
+  width: min(100%, 19rem);
+  margin-inline: auto;
+}
+
+.art--bsm {
+  margin-bottom: 5svh;
+}
+
+.art--bark {
+  width: min(100%, 21rem);
+  margin-bottom: 9svh;
+}
+
+.art--icon {
+  width: clamp(1.7rem, 7vw, 2.2rem);
+  margin-inline: auto;
+}
+
+.art--icon--pin {
+  width: clamp(1.9rem, 7.5vw, 2.4rem);
+  margin-bottom: 0.8svh;
+}
+
+/* --- text ----------------------------------------------------------- */
+
+.verse {
+  margin: 0;
+  max-width: 28rem;
+  font-size: clamp(0.95rem, 4.1vw, 1.45rem);
+  line-height: 2.15;
+  color: var(--ink);
+  text-shadow: var(--halo);
+  text-wrap: pretty;
+}
+
+.verse--invite {
+  margin-top: 4svh;
+}
+
+.rule {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: clamp(0.7rem, 3vw, 1.1rem);
+  width: min(100%, 15rem);
+  color: var(--gold);
+  text-shadow: var(--halo);
+}
+
+.rule__line {
+  flex: 1 1 auto;
+  height: 1px;
+  background-color: currentColor;
+  opacity: 0.75;
+}
+
+.rule__mark {
+  flex: 0 0 auto;
+  width: 0.4rem;
+  height: 0.4rem;
+  background-color: currentColor;
+  transform: rotate(45deg);
+}
+
+.rule--broad {
+  margin-top: 11svh;
+}
+
+.rule--fine {
+  width: min(100%, 10rem);
+  margin-top: 8svh;
+}
+
+/* --- names: driven by GSAP ScrollTrigger inside ScrollFloat ---------- */
+
+.names {
+  margin: 9svh 0 0;
+  font-family: 'Bettrisia', 'Snell Roundhand', cursive;
+  font-weight: 400;
+  color: var(--ink);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-shadow: var(--halo);
+}
+
+.names__float {
+  display: block;
+  width: 100%;
+}
+
+/* more specific than .scroll-float-text so these win regardless of the order
+   the two stylesheets are injected in */
+.names .scroll-float-text {
+  font-family: inherit;
+  font-weight: 400;
+  line-height: 1.05;
+}
+
+.names .names__line {
+  font-size: clamp(3.2rem, 16vw, 5.6rem);
+}
+
+.names .names__amp {
+  display: block;
+  font-size: clamp(1.4rem, 7vw, 2.4rem);
+  line-height: 1.1;
+  color: var(--ink-2);
+  margin-block: 0.14em 0.08em;
+}
+
+/* --- details: the icon sits on its own line, the value below it ------- */
+
+.details {
+  margin-top: 9svh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 5svh;
+  width: 100%;
+}
+
+.detail {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1.1rem;
+  color: var(--ink);
+  text-shadow: var(--halo);
+}
+
+.detail__value {
+  font-size: clamp(1.05rem, 4.6vw, 1.5rem);
+  line-height: 1.6;
+  letter-spacing: 0.01em;
+  text-align: center;
+}
+
+/* --- notes ----------------------------------------------------------- */
+
+.notes {
+  margin-top: 16svh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1.5svh;
+  color: var(--ink);
+  text-shadow: var(--halo);
+}
+
+.notes__line {
+  margin: 0;
+  font-size: clamp(1.05rem, 4.5vw, 1.32rem);
+  line-height: 1.95;
+  letter-spacing: 0.01em;
+}
+
+/* --- scroll reveals (everything except the names) --------------------- */
+
+[data-reveal] {
+  opacity: 0;
+  transform: translateY(1.15rem);
+}
+
+[data-reveal].is-in {
+  opacity: 1;
+  transform: none;
+  transition:
+    opacity 1.15s cubic-bezier(0.22, 0.61, 0.36, 1),
+    transform 1.15s cubic-bezier(0.22, 0.61, 0.36, 1);
+}
+
+/* ============================== the gate ==============================
+   Shown first, on background04.png. Pressing anywhere opens it.
+   ==================================================================== */
+
+.gate {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  /* set inline from BASE_URL; background04 is the gate */
+  background-repeat: no-repeat;
+  background-position: 50% 50%;
+  background-size: cover;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.gate__stage {
+  position: relative;
+  width: min(78vw, 21rem);
+  aspect-ratio: 1.42 / 1;
+  perspective: 1400px;
+}
+
+.gate__hint {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -3.2rem;
+  margin: 0;
+  text-align: center;
+  font-size: 0.95rem;
+  letter-spacing: 0.04em;
+  color: #6b4a45;
+  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.5);
+  opacity: 0.85;
+  transition: opacity 0.3s linear;
+}
+
+.is-opening .gate__hint {
+  opacity: 0;
+}
+
+.envelope {
+  position: absolute;
+  inset: 0;
+}
+
+.envelope__card {
+  position: absolute;
+  left: 6%;
+  right: 6%;
+  top: 12%;
+  bottom: 0;
+  border-radius: 0.35rem;
+  background-color: #f6eae6;
+  box-shadow: 0 0.4rem 1.4rem rgba(57, 45, 45, 0.16);
+  transform: translateY(0);
+  transition: transform 0.7s cubic-bezier(0.22, 0.61, 0.36, 1);
+}
+
+.envelope__body {
+  position: absolute;
+  inset: 0;
+  border-radius: 0.4rem;
+  background-color: var(--env-body);
+  box-shadow: 0 0.6rem 1.8rem rgba(57, 45, 45, 0.2);
+  overflow: hidden;
+}
+
+.envelope__body::before,
+.envelope__body::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 52%;
+  background-color: var(--env-body);
+}
+
+.envelope__body::before {
+  left: 0;
+  clip-path: polygon(0 0, 100% 0, 0 100%);
+}
+
+.envelope__body::after {
+  right: 0;
+  clip-path: polygon(0 0, 100% 0, 100% 100%);
+}
+
+.envelope__seam {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 46%;
+  background-color: var(--env-flap);
+  clip-path: polygon(0 100%, 50% 0, 100% 100%);
+}
+
+.envelope__flap {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  height: 54%;
+  background-color: var(--env-flap);
+  clip-path: polygon(0 0, 100% 0, 50% 100%);
+  transform-origin: 50% 0;
+  transform: rotateX(0deg);
+  transition: transform 0.75s cubic-bezier(0.5, 0, 0.2, 1);
+  z-index: 3;
+  backface-visibility: hidden;
+}
+
+.is-opening .envelope__flap {
+  transform: rotateX(-172deg);
+}
+
+.is-opening .envelope__card {
+  transform: translateY(-9%);
+}
+
+.seal {
+  position: absolute;
+  left: 50%;
+  top: 46%;
+  z-index: 4;
+  width: 27%;
+  aspect-ratio: 1;
+  transform: translate(-50%, -50%);
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: none;
+  cursor: pointer;
+  color: var(--wax);
+  transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.35s linear;
+}
+
+.seal__blob {
+  position: absolute;
+  inset: 0;
+  border-radius: 46% 54% 52% 48% / 50% 46% 54% 50%;
+  background: radial-gradient(
+    circle at 34% 28%,
+    var(--wax-lit) 0%,
+    var(--wax) 46%,
+    #6f3835 100%
+  );
+  box-shadow:
+    inset 0 0.12rem 0.3rem rgba(255, 235, 225, 0.32),
+    inset 0 -0.15rem 0.35rem rgba(50, 20, 20, 0.45),
+    0 0.2rem 0.5rem rgba(57, 45, 45, 0.35);
+}
+
+.seal__blob::after {
+  content: '';
+  position: absolute;
+  inset: 5%;
+  border-radius: 50%;
+  border: 1px dashed rgba(255, 226, 214, 0.28);
+}
+
+.seal__mark {
+  position: absolute;
+  inset: 26%;
+  opacity: 0.62;
+}
+
+.seal__mark svg {
+  width: 100%;
+  height: 100%;
+  color: #f6ddd4;
+}
+
+.seal__half {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 50%;
+  opacity: 0;
+  transition: transform 0.5s cubic-bezier(0.5, 0, 0.3, 1), opacity 0.4s linear;
+  z-index: 5;
+}
+
+/* the halves that snap the seal apart are filled with the average tone of
+   background04 so they read as the picture breaking open, not a colour change */
+.seal__half--l {
+  left: 0;
+  transform: translateX(0);
+  border-radius: 46% 0 0 54% / 50% 46% 54% 50%;
+  background: linear-gradient(90deg, #d7b1af 0%, #e2bcba 100%);
+}
+
+.seal__half--r {
+  right: 0;
+  transform: translateX(0);
+  border-radius: 0 54% 52% 48% / 46% 50% 50% 54%;
+  background: linear-gradient(90deg, #e2bcba 0%, #d7b1af 100%);
+}
+
+.is-opening .seal {
+  transform: translate(-50%, -50%) scale(0.72) rotate(-14deg);
+  opacity: 0;
+  pointer-events: none;
+}
+
+.is-opening .seal__half--l {
+  transform: translateX(-135%) rotate(-16deg);
+  opacity: 1;
+}
+
+.is-opening .seal__half--r {
+  transform: translateX(135%) rotate(16deg);
+  opacity: 1;
+}
+
+.seal:focus-visible {
+  outline: 2px solid #6b4a45;
+  outline-offset: 0.35rem;
+}
+
+/* the glow that carries background04 into the invitation */
+.bloom {
+  position: fixed;
+  left: 0;
+  top: 0;
+  z-index: 50;
+  width: 40vmax;
+  height: 40vmax;
+  margin: -20vmax 0 0 -20vmax;
+  border-radius: 50%;
+  pointer-events: none;
+  opacity: 0;
+  transform: scale(0.05);
+  background: radial-gradient(
+    circle,
+    rgba(255, 251, 245, 0.98) 0%,
+    rgba(255, 240, 228, 0.86) 32%,
+    rgba(250, 224, 206, 0.5) 58%,
+    rgba(245, 214, 196, 0) 74%
+  );
+}
+
+.bloom.is-blooming {
+  animation: bloom 1.15s cubic-bezier(0.16, 0.8, 0.3, 1) forwards;
+}
+
+@keyframes bloom {
+  0% {
+    opacity: 0;
+    transform: scale(0.05);
+  }
+  22% {
+    opacity: 0.95;
+  }
+  100% {
+    opacity: 0;
+    transform: scale(2.6);
+  }
+}
+
+/* ============================== responsive ============================== */
+
+@media (min-width: 48rem) {
+  .invitation {
+    padding-block: 3svh 30svh;
+  }
+
+  .art--chandelier {
+    width: 32rem;
+  }
+
+  .names .names__line {
+    font-size: 5.2rem;
+  }
+
+  .names .names__amp {
+    font-size: 2.2rem;
+  }
+
+  .rule--broad {
+    margin-top: 9svh;
+  }
+
+  .names {
+    margin-top: 8svh;
+  }
+
+  .details,
+  .notes {
+    margin-top: 8svh;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [data-reveal] {
+    transform: none;
+  }
+
+  [data-reveal].is-in {
+    transition: opacity 0.4s linear;
+  }
+
+  .bloom.is-blooming {
+    animation: bloom-plain 0.6s linear forwards;
+  }
+
+  @keyframes bloom-plain {
+    0% {
+      opacity: 0;
+      transform: none;
+    }
+    30% {
+      opacity: 0.9;
+    }
+    100% {
+      opacity: 0;
+      transform: none;
+    }
+  }
+
+  .envelope__flap,
+  .envelope__card,
+  .seal,
+  .seal__half,
+  .gate__hint {
+    transition-duration: 0.01ms;
+  }
+}

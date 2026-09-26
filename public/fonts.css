@@ -1,0 +1,19 @@
+/* Loaded as a plain stylesheet from public/ rather than bundled, so these
+   relative urls resolve against /fonts/ at runtime and stay correct under a
+   repository sub-path. Do not move this file into src/. */
+
+@font-face {
+  font-family: 'Bettrisia';
+  src: url('./Bettrisia Script Alt Regular.otf') format('opentype');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Janna';
+  src: url('./janna-2-thin.otf') format('opentype');
+  font-weight: 300;
+  font-style: normal;
+  font-display: swap;
+}

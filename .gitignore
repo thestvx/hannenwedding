@@ -1,16 +1,5 @@
-# OS noise
-.DS_Store
-Thumbs.db
-desktop.ini
-
-# Editors
-.vscode/
-.idea/
-*.swp
-
-# Build/tooling output (the site itself needs none of this)
 node_modules/
 dist/
-build/
-.cache/
-*.log
+.DS_Store
+*.local
+.vite/
