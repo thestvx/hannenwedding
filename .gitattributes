@@ -1,0 +1,6 @@
+# Keep line endings stable so the diff stays readable on Windows.
+* text=auto eol=lf
+
+*.jpg  binary
+*.png  binary
+*.webp binary
