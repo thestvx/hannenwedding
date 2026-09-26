@@ -1,1377 +1,274 @@
-/* ==========================================================================
-   Hanene & Smail — Luxury Digital Wedding Invitation
-   --------------------------------------------------------------------------
-   1.  Tokens & reset
-   2.  Utilities
-   3.  Envelope stage (atmosphere, lighting)
-   4.  Envelope construction (back, throat, card, front, flap)
-   5.  Wax seal
-   6.  Opening choreography
-   7.  Invitation (backdrop, scrim, botanicals, typography)
-   8.  State hand-off
-   9.  Responsive
-   10. Reduced motion
-   ========================================================================== */
-
-
-/* ==========================================================================
-   1. TOKENS & RESET
-   ========================================================================== */
-
-:root {
-  /* ---- Type ---- */
-  --font-display: "Cormorant Garamond", "Hoefler Text", "Baskerville",
-                  "Times New Roman", Times, serif;
-  --font-arabic: "Amiri", "Noto Naskh Arabic", "Traditional Arabic",
-                 "Times New Roman", serif;
-
-  /* ---- Ink & light ---- */
-  --ivory:       #f7f0e5;
-  --ivory-soft:  rgba(247, 240, 229, 0.86);
-  --ivory-mute:  rgba(247, 240, 229, 0.58);
-  --ivory-faint: rgba(247, 240, 229, 0.34);
-  --gold:        #c9a961;
-  --gold-soft:   rgba(201, 169, 97, 0.62);
-  --gold-hair:   rgba(201, 169, 97, 0.34);
-  --ground:      #141010;   /* stands in if background.jpg cannot load */
-
-  /* ---- Paper stock ---- */
-  --paper-hi: #f6f0e6;
-  --paper:    #ece2d3;
-  --paper-mid:#ded0bb;
-  --paper-lo: #c9b79c;
-  --liner-hi: #8e3540;
-  --liner-lo: #4a141d;
-
-  /* ---- Envelope geometry ---- */
-  --env-w: min(84vw, 46vh, 540px);
-  --env-h: calc(var(--env-w) / 1.44);
-  --flap-h: 56%;
-  --seal-size: calc(var(--env-w) * 0.3);
-
-  /* ---- Durations (ms) ---- */
-  --t-press:    180ms;
-  --t-break:    660ms;
-  --t-flap:     880ms;
-  --t-rise:    1000ms;
-  --t-dissolve: 920ms;
-
-  /* ---- Intra-phase offsets (ms) ---- */
-  --d-break:  140ms;   /* the fracture follows the press          */
-  --d-flap:   250ms;   /* the flap follows the fracture           */
-  --d-rise:   700ms;   /* the card follows the flap's departure   */
-  --d-reveal: 700ms;   /* type follows the stage receding         */
-  --d-scene-hide: 1100ms; /* the spent stage leaves the tree       */
-
-  /* ---- Easing ---- */
-  --e-press:    cubic-bezier(0.34, 1.56, 0.64, 1);
-  --e-flap:     cubic-bezier(0.24, 0.7, 0.26, 1);
-  --e-rise:     cubic-bezier(0.16, 0.84, 0.24, 1);
-  --e-dissolve: cubic-bezier(0.4, 0, 0.2, 1);
-  --e-out:      cubic-bezier(0.22, 0.61, 0.24, 1);
-
-  /* ---- Viewport ---- */
-  --vh: 100vh;
+@font-face {
+  font-family: "Bettrisia";
+  src: url("fonts/Bettrisia Script Alt Regular.otf") format("opentype");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
 }
 
-@supports (height: 100svh) {
-  :root { --vh: 100svh; }
+@font-face {
+  font-family: "Janna";
+  src: url("fonts/janna-2-thin.otf") format("opentype");
+  font-weight: 300;
+  font-style: normal;
+  font-display: swap;
+}
+
+:root {
+  --paper: #ece2d9;
+  --ink: #3f2d1f;
+  --ink-2: #5a4433;
+  --ink-3: #6f5a45;
+  --gold: #7d6134;
+  --gold-soft: #8f7043;
+
+  --gutter: clamp(1.5rem, 6vw, 2.5rem);
+  --measure: 33rem;
 }
 
 *,
 *::before,
-*::after { box-sizing: border-box; }
+*::after {
+  box-sizing: border-box;
+}
 
-html,
-body {
-  margin: 0;
-  padding: 0;
-  height: 100%;
-  overflow: hidden;              /* one calm, single-screen experience */
-  overscroll-behavior: none;
+html {
+  background-color: var(--paper);
+  -webkit-text-size-adjust: 100%;
 }
 
 body {
-  background: var(--ground);
-  color: var(--ivory);
-  font-family: var(--font-display);
+  margin: 0;
+  min-height: 100vh;
+  min-height: 100svh;
+  background-color: var(--paper);
+  color: var(--ink);
+  font-family: "Janna", "Segoe UI", system-ui, sans-serif;
+  font-weight: 300;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  text-rendering: optimizeLegibility;
+  overflow-x: hidden;
 }
 
-h1, h2, h3, p, figure, blockquote { margin: 0; }
-button { font: inherit; color: inherit; background: none; border: 0; }
-
-
-/* ==========================================================================
-   2. UTILITIES
-   ========================================================================== */
-
-.sprite { position: absolute; width: 0; height: 0; overflow: hidden; }
-
-.sr-only {
+.sprite {
   position: absolute;
-  width: 1px;
-  height: 1px;
-  margin: -1px;
-  padding: 0;
-  overflow: hidden;
-  clip: rect(0 0 0 0);
-  clip-path: inset(50%);
-  white-space: nowrap;
-  border: 0;
-}
-
-:focus-visible { outline: 1px solid var(--gold-soft); outline-offset: 7px; }
-
-
-/* ==========================================================================
-   3. ENVELOPE STAGE
-   ========================================================================== */
-
-.envelope-scene {
-  position: fixed;
-  inset: 0;
-  height: var(--vh);
-  z-index: 30;
-  display: grid;
-  place-items: center;
-  padding:
-    max(1.25rem, env(safe-area-inset-top))
-    max(1.25rem, env(safe-area-inset-right))
-    max(1.25rem, env(safe-area-inset-bottom))
-    max(1.25rem, env(safe-area-inset-left));
-  transition: visibility 0s linear var(--d-scene-hide);
-}
-
-/* The lit surface the envelope rests on. Kept on its own layer so it can
-   recede ahead of the envelope itself — the photograph then emerges from
-   behind it instead of being masked by a flat sheet of dark. */
-.envelope-scene__bg {
-  position: absolute;
-  inset: 0;
-  z-index: -2;
-  background:
-    radial-gradient(88% 62% at 50% 30%, #2a2320 0%, #1a1513 44%, #0d0a09 100%),
-    var(--ground);
-  transition: opacity 520ms linear;
-}
-
-/* Warm pool of light behind the envelope */
-.envelope-scene__aura {
-  position: absolute;
-  inset: 0;
-  z-index: -1;
-  pointer-events: none;
-  background: radial-gradient(46% 34% at 50% 44%,
-              rgba(214, 168, 116, 0.17) 0%,
-              rgba(214, 168, 116, 0.06) 46%, transparent 72%);
-  transition: opacity 420ms linear;
-  animation: aura-breathe 11s ease-in-out infinite;
-}
-
-@keyframes aura-breathe {
-  0%, 100% { opacity: 0.7;  transform: scale(1);    }
-  50%      { opacity: 1;    transform: scale(1.05); }
-}
-
-.envelope-scene__grain {
-  position: absolute;
-  inset: 0;
-  z-index: -1;
-  pointer-events: none;
-  opacity: 0.05;
-  mix-blend-mode: overlay;
-  background-image: url("assets/textures/paper-grain.svg");
-  background-size: 200px 200px;
-  transition: opacity 420ms linear;
-}
-
-/* ---- The opening curtain ----------------------------------------------
-   Opaque on load, then lifted. It is the one thing that makes the first
-   impression feel deliberate rather than "the page just appeared". */
-.envelope-scene__veil {
-  position: absolute;
-  inset: 0;
-  z-index: 8;
-  pointer-events: none;
-  background: radial-gradient(120% 90% at 50% 46%, #17110f 0%, #0a0706 62%, #050303 100%);
-  animation: veil-lift 1500ms var(--e-out) 120ms both;
-}
-
-@keyframes veil-lift {
-  0%   { opacity: 1; }
-  100% { opacity: 0; }
-}
-
-/* The stage itself fades up from black underneath the veil. Opacity only —
-   nothing here competes with the dissolve transition later on. */
-.js .envelope-scene { animation: stage-in 1100ms var(--e-out) both; }
-
-@keyframes stage-in {
-  0%   { opacity: 0; }
-  100% { opacity: 1; }
-}
-
-/* The envelope rises and settles. Cancelled the instant the visitor touches
-   anything (see .is-awake in script.js) so it can never fight the opening. */
-.js .envelope-scene__inner { animation: envelope-in 1250ms var(--e-out) 260ms both; }
-
-@keyframes envelope-in {
-  0%   { opacity: 0; transform: translateY(4.5%) scale(0.965); }
-  62%  { opacity: 1; }
-  100% { opacity: 1; transform: translateY(0) scale(1); }
-}
-
-.js.is-awake .envelope-scene,
-.js.is-awake .envelope-scene__inner,
-.js.is-awake .envelope-scene__veil { animation: none; }
-.js.is-awake .envelope-scene__inner { opacity: 1; transform: none; }
-.js.is-awake .envelope-scene__veil { opacity: 0; }
-
-.envelope-scene__inner {
-  position: relative;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: clamp(1.6rem, 4.5vh, 2.75rem);
-  transition: transform var(--t-dissolve) var(--e-dissolve),
-              opacity    var(--t-dissolve) linear;
-}
-
-/* The stage is already inert the moment is-gone lands (opacity 0, no pointer
-   events). The delayed visibility is only housekeeping, so a dropped
-   transition costs a little memory and nothing else. */
-.js .envelope-scene.is-gone { visibility: hidden; pointer-events: none; }
-
-/* Only the ambient loops are stopped here. The hint must NOT be: its hint-out
-   fade is finite and forwards-filled, so cancelling it would drop the element
-   back to opacity 1 and leave "tap the seal" on screen with no seal. */
-.js .envelope-scene.is-gone .envelope-scene__bg,
-.js .envelope-scene.is-gone .envelope-scene__aura,
-.js .envelope-scene.is-gone .envelope-scene__grain { animation: none; }
-
-.js .envelope-scene.is-gone .envelope-scene__bg,
-.js .envelope-scene.is-gone .envelope-scene__aura,
-.js .envelope-scene.is-gone .envelope-scene__grain { opacity: 0; }
-
-.js .envelope-scene.is-gone .envelope-scene__inner {
-  transform: translateY(-2.5%) scale(1.09);
-  opacity: 0;
-}
-
-/* The 3D context. Perspective is declared on the stage and again on the
-   envelope, so the flap can never end up rotating in a flat plane if a
-   grouping property (filter, overflow) flattens one of the levels. */
-.envelope-stage {
-  position: relative;
-  perspective: 1150px;
-  perspective-origin: 50% 40%;
-  transition: transform var(--t-dissolve) var(--e-dissolve);
-}
-
-
-/* ==========================================================================
-   4. ENVELOPE CONSTRUCTION
-   ========================================================================== */
-
-.envelope {
-  position: relative;
-  width: var(--env-w);
-  height: var(--env-h);
-  perspective: 1150px;
-  perspective-origin: 50% 34%;
-  transform-style: preserve-3d;
-}
-
-/* Soft contact shadow cast onto the surface below */
-.envelope-stage::after {
-  content: "";
-  position: absolute;
-  left: 50%;
-  bottom: -7%;
-  width: 78%;
-  height: 13%;
-  transform: translateX(-50%);
-  border-radius: 50%;
-  background: radial-gradient(50% 50% at 50% 50%,
-              rgba(0, 0, 0, 0.55) 0%, rgba(0, 0, 0, 0.22) 46%, transparent 72%);
-  filter: blur(2px);
-  z-index: -1;
-  transition: opacity 600ms linear;
-}
-
-/* ---- Body: back panel ---- */
-.envelope__back {
-  position: absolute;
-  inset: 0;
-  z-index: 1;
-  border-radius: 3px;
-  background:
-    /* corner warmth */
-    radial-gradient(120% 80% at 22% 8%, rgba(255, 249, 238, 0.55) 0%, transparent 58%),
-    linear-gradient(168deg,
-              var(--paper-hi) 0%, var(--paper) 44%, var(--paper-mid) 82%, var(--paper-lo) 100%);
-  box-shadow:
-    0 0 0 1px rgba(122, 96, 66, 0.28),
-    0 1px 0 rgba(255, 255, 255, 0.62) inset,
-    0 -1px 0 rgba(120, 98, 72, 0.26) inset;
-}
-
-/* ---- Interior lining, glimpsed once the flap lifts ---- */
-.envelope__throat {
-  position: absolute;
-  inset: 0 0 auto 0;
-  height: 44%;
-  z-index: 2;
-  background:
-    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='26' height='26' viewBox='0 0 26 26'%3E%3Cg fill='none' stroke='%23c9a961' stroke-width='0.55' opacity='0.42'%3E%3Cpath d='M13 1.5 L24.5 13 L13 24.5 L1.5 13 Z'/%3E%3Ccircle cx='13' cy='13' r='3.4'/%3E%3C/g%3E%3C/svg%3E"),
-    linear-gradient(180deg,
-              var(--liner-lo) 0%, var(--liner-hi) 62%, #6d2029 100%);
-  background-size: 26px 26px, auto;
-  box-shadow:
-    0 7px 16px -6px rgba(0, 0, 0, 0.72) inset,
-    0 -1px 0 rgba(255, 255, 255, 0.14) inset;
-}
-
-/* ---- The invitation card, tucked inside ---- */
-.envelope__card {
-  position: absolute;
-  left: 5.5%;
-  right: 5.5%;
-  top: 4%;
-  height: 92%;
-  z-index: 3;
-  transform: translate3d(0, 0, 0);
-  transform-origin: 50% 100%;
-  transition: transform var(--t-rise) var(--e-rise) var(--d-rise);
-}
-
-.envelope__card-face {
-  position: relative;
-  height: 100%;
-  border-radius: 1px;
-  overflow: hidden;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: 6% 8%;
-  text-align: center;
-  color: #4a3b2c;
-  background: linear-gradient(172deg, #fbf7f0 0%, #f2eade 52%, #e6d9c6 100%);
-  box-shadow:
-    0 0 0 1px rgba(150, 124, 90, 0.24) inset,
-    0 18px 34px -18px rgba(38, 22, 10, 0.6);
-  transition: box-shadow var(--t-rise) var(--e-rise) var(--d-rise);
-}
-
-/* Paper tooth */
-.envelope__card-face::after,
-.envelope__back::after,
-.envelope__front::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  opacity: 0.15;
-  mix-blend-mode: multiply;
-  pointer-events: none;
-  background-image: url("assets/textures/paper-grain.svg");
-  background-size: 160px 160px;
-}
-
-.mini-orn {
-  width: 34%;
-  height: 1px;
-  margin-bottom: 0.5em;
-  background: linear-gradient(90deg, transparent, var(--gold-hair) 22%,
-              var(--gold-hair) 78%, transparent);
-}
-
-.mini-names {
-  font-size: calc(var(--env-w) * 0.088);
-  font-weight: 300;
-  letter-spacing: 0.04em;
-  line-height: 1.15;
-  color: #3d3024;
-}
-.mini-names i { font-style: italic; color: #9a7c3e; padding-inline: 0.14em; }
-
-.mini-date {
-  margin-top: 0.55em;
-  font-size: calc(var(--env-w) * 0.034);
-  font-weight: 400;
-  letter-spacing: 0.3em;
-  text-transform: uppercase;
-  color: #6d5942;
-}
-
-.mini-venue {
-  margin-top: 0.9em;
-  font-family: var(--font-arabic);
-  font-size: calc(var(--env-w) * 0.042);
-  line-height: 1.6;
-  color: #6d5942;
-}
-
-/* ---- Front ---- */
-.envelope__front {
-  position: absolute;
-  inset: 44% 0 0 0;
-  z-index: 4;
-  border-radius: 0 0 3px 3px;
-}
-
-.env-panel { position: absolute; inset: 0; }
-
-/* The two side panels fold down to a point; a hairline on each fold edge is
-   what stops them reading as flat colour blocks. */
-.env-panel--l {
-  clip-path: polygon(0 0, 50% 62%, 0 100%);
-  background: linear-gradient(102deg, var(--paper-hi) 0%, var(--paper) 40%,
-              var(--paper-mid) 78%, var(--paper-lo) 100%);
-}
-.env-panel--l::after,
-.env-panel--r::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-}
-.env-panel--l::after {
-  background: linear-gradient(58deg, transparent 49.4%,
-              rgba(122, 98, 70, 0.34) 50%, rgba(255, 252, 244, 0.5) 50.7%, transparent 51.4%);
-}
-
-.env-panel--r {
-  clip-path: polygon(100% 0, 50% 62%, 100% 100%);
-  background: linear-gradient(258deg, var(--paper-hi) 0%, var(--paper) 38%,
-              var(--paper-mid) 76%, var(--paper-lo) 100%);
-}
-.env-panel--r::after {
-  background: linear-gradient(-58deg, transparent 49.4%,
-              rgba(122, 98, 70, 0.34) 50%, rgba(255, 252, 244, 0.5) 50.7%, transparent 51.4%);
-}
-
-.env-panel--b {
-  clip-path: polygon(0 100%, 50% 30%, 100% 100%);
-  background: linear-gradient(178deg, var(--paper-hi) 0%, var(--paper) 34%,
-              var(--paper) 72%, var(--paper-mid) 100%);
-  filter: drop-shadow(0 -1px 0 rgba(122, 98, 70, 0.3));
-}
-.env-panel--b::after {
-  background: linear-gradient(0deg, transparent 29%,
-              rgba(122, 98, 70, 0.3) 30.2%, rgba(255, 252, 244, 0.42) 31%, transparent 32%);
-}
-
-/* ---- Gold foil frame, struck into the face of the envelope ----
-   The single strongest "this is fine stationery" signal available, and it
-   costs one element. */
-.env-frame {
-  position: absolute;
-  inset: 5.5% 3.6% 6.5%;
-  pointer-events: none;
-  border: 1px solid rgba(201, 169, 97, 0.5);
-  border-radius: 1px;
-  box-shadow:
-    0 0 0 1px rgba(255, 244, 214, 0.34) inset,
-    0 1px 0 rgba(122, 98, 70, 0.2),
-    0 -1px 0 rgba(255, 255, 255, 0.34) inset;
-  opacity: 0.9;
-}
-
-/* A second, finer rule just inside the first — classic double-rule foil */
-.env-frame::after {
-  content: "";
-  position: absolute;
-  inset: 3px;
-  border: 1px solid rgba(201, 169, 97, 0.24);
-  border-radius: 1px;
-}
-
-/* Raking light across the front */
-.env-sheen {
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  background: linear-gradient(104deg, rgba(255, 255, 255, 0.34) 0%,
-              rgba(255, 255, 255, 0.08) 26%, transparent 52%);
-}
-
-/* ---- Flap ---- */
-.envelope__flap {
-  position: absolute;
-  inset: 0 0 auto 0;
-  height: var(--flap-h);
-  z-index: 5;
-  transform-origin: 50% 0%;
-  transform: rotateX(0deg);
-  transform-style: preserve-3d;
-  transition: transform var(--t-flap) var(--e-flap) var(--d-flap),
-              opacity    460ms linear 1180ms;
-}
-
-.envelope__flap-outer,
-.envelope__flap-inner {
-  position: absolute;
-  inset: 0;
-  backface-visibility: hidden;
-  -webkit-backface-visibility: hidden;
-  clip-path: polygon(0 0, 100% 0, 50% 100%);
-}
-
-.envelope__flap-outer {
-  background:
-    radial-gradient(90% 60% at 50% 0%, rgba(255, 252, 245, 0.7) 0%, transparent 62%),
-    linear-gradient(184deg,
-              var(--paper-hi) 0%, var(--paper) 42%, var(--paper-mid) 100%);
-  box-shadow:
-    0 0 0 1px rgba(122, 96, 66, 0.22),
-    0 -1px 0 rgba(255, 255, 255, 0.6) inset;
-}
-
-/* Gold ornament struck on the flap. Position and width are bounded by the
-   fold: at fraction t down a triangle of width W the paper is only W*(1-t)
-   wide, and the flap is clip-path'd, so an ornament wider than that gets its
-   ends sliced off. 44% down leaves W*0.56 = 221px of paper for a 165px
-   ornament. The seal's crown reaches up to ~101px, so the two never touch. */
-.flap-orn {
-  position: absolute;
-  left: 50%;
-  top: 44%;
-  width: 42%;
-  height: 10px;
-  transform: translate(-50%, -50%);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 7px;
-  opacity: 0.62;
-  filter: drop-shadow(0 1px 0 rgba(255, 250, 235, 0.55));
-}
-.flap-orn::before,
-.flap-orn::after {
-  content: "";
-  flex: 1 1 auto;
-  height: 1px;
-  background: linear-gradient(90deg, transparent, var(--gold) 62%, var(--gold));
-}
-.flap-orn::after { background: linear-gradient(90deg, var(--gold), var(--gold) 38%, transparent); }
-.flap-orn i {
-  flex: 0 0 auto;
-  width: 5px;
-  height: 5px;
-  border: 1px solid var(--gold);
-  transform: rotate(45deg);
-}
-
-.envelope__flap-inner {
-  transform: rotateX(180deg);
-  background:
-    /* damask trellis, revealed only once the flap swings back */
-    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='26' height='26' viewBox='0 0 26 26'%3E%3Cg fill='none' stroke='%23c9a961' stroke-width='0.55' opacity='0.5'%3E%3Cpath d='M13 1.5 L24.5 13 L13 24.5 L1.5 13 Z'/%3E%3Ccircle cx='13' cy='13' r='3.4'/%3E%3C/g%3E%3C/svg%3E"),
-    linear-gradient(176deg, #7a2530 0%, var(--liner-hi) 42%, var(--liner-lo) 100%);
-  background-size: 26px 26px, auto;
-  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.1) inset;
-}
-
-/* A hairline so the fold reads as folded paper, not a cut edge */
-.envelope__flap-outer::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(184deg,
-              transparent 0%, transparent 60%, rgba(122, 98, 70, 0.18) 100%);
-}
-
-
-/* ==========================================================================
-   5. WAX SEAL
-   ========================================================================== */
-
-.seal {
-  position: absolute;
-  top: var(--flap-h);
-  left: 50%;
-  width: var(--seal-size);
-  height: var(--seal-size);
-  margin: 0;
-  padding: 0;
-  z-index: 7;
-  cursor: pointer;
-  -webkit-tap-highlight-color: transparent;
-  touch-action: manipulation;
-  transform: translate3d(-50%, -50%, 3px);
-  /* The idle float owns `transform`; interaction owns `scale`. Keeping them
-     on separate properties is what lets :hover and :active actually land
-     while the seal is still breathing. */
-  scale: 1;
-  filter: drop-shadow(0 5px 7px rgba(20, 4, 8, 0.5))
-          drop-shadow(0 1px 1px rgba(255, 220, 210, 0.16));
-  transition: transform var(--t-press) var(--e-press),
-              scale     var(--t-press) var(--e-press),
-              filter    var(--t-press) var(--e-press),
-              opacity    260ms linear 480ms;
-  animation: seal-breathe 5.6s ease-in-out infinite;
-}
-
-/* Alive, but only just: a sub-pixel float and a whisper of scale */
-@keyframes seal-breathe {
-  0%, 100% { transform: translate3d(-50%, -50%, 3px); }
-  50%      { transform: translate3d(-50%, calc(-50% - 1.4%), 3px); }
-}
-
-.seal__half {
-  position: absolute;
-  inset: 0;
-  display: block;
-  transition: transform 640ms cubic-bezier(0.3, 0.02, 0.6, 1) var(--d-break),
-              opacity    520ms linear calc(var(--d-break) + 300ms);
-}
-
-.seal__half svg { display: block; width: 100%; height: 100%; overflow: visible; }
-
-/* The fracture, cut to match the two halves of the seal art */
-.seal__half--l {
-  clip-path: polygon(0 0, 50% 1%, 50.73% 20.6%, 49.59% 40.2%,
-                     56.25% 59.8%, 53.14% 79.4%, 50% 99%, 0 100%);
-}
-.seal__half--r {
-  clip-path: polygon(100% 0, 50% 99%, 53.14% 79.4%, 56.25% 59.8%,
-                     49.59% 40.2%, 50.73% 20.6%, 50% 1%, 100% 100%);
-}
-
-.seal__gloss {
-  position: absolute;
-  inset: -6%;
-  border-radius: 50%;
-  pointer-events: none;
-  background: linear-gradient(122deg, transparent 34%,
-              rgba(255, 226, 224, 0.3) 46%,
-              rgba(255, 226, 224, 0.06) 54%, transparent 66%);
-  mix-blend-mode: screen;
-  animation: seal-gloss 7.5s ease-in-out infinite;
-}
-
-@keyframes seal-gloss {
-  0%, 62%, 100% { transform: translate3d(-26%, -14%, 0); opacity: 0; }
-  22%           { opacity: 0.9; }
-  46%           { transform: translate3d(26%, 14%, 0); opacity: 0; }
-}
-
-/* A halo that breathes slowly — the invitation to touch */
-.seal__pulse {
-  position: absolute;
-  inset: -16%;
-  border-radius: 50%;
-  pointer-events: none;
-  border: 1px solid rgba(201, 169, 97, 0.32);
-  animation: seal-pulse 4.4s ease-out infinite;
-}
-
-@keyframes seal-pulse {
-  0%        { transform: scale(0.88); opacity: 0; }
-  22%       { opacity: 0.6; }
-  70%, 100% { transform: scale(1.26); opacity: 0; }
-}
-
-@media (hover: hover) {
-  .seal:hover {
-    scale: 1.05;
-    filter: drop-shadow(0 8px 12px rgba(20, 4, 8, 0.55))
-            drop-shadow(0 1px 1px rgba(255, 220, 210, 0.2));
-  }
-}
-
-.seal:active {
-  scale: 0.95;
-  transition-duration: 90ms;
-  animation: none;
-}
-
-/* Three crumbs of wax, released when the seal gives way */
-.envelope-dust {
-  position: absolute;
-  top: var(--flap-h);
-  left: 50%;
   width: 0;
   height: 0;
-  z-index: 6;
-  pointer-events: none;
+  overflow: hidden;
 }
 
-.envelope-dust i {
-  position: absolute;
-  width: calc(var(--seal-size) * 0.075);
-  height: calc(var(--seal-size) * 0.058);
-  border-radius: 40% 60% 55% 45%;
-  background: linear-gradient(160deg, #7d1f2e, #4a101a);
-  opacity: 0;
-  transform: translate3d(0, 0, 4px);
-}
-
-.envelope-dust i:nth-child(1) { margin: -4px 0 0 -3px; }
-.envelope-dust i:nth-child(2) { margin: 3px 0 0 -7px;
-  width: calc(var(--seal-size) * 0.055); height: calc(var(--seal-size) * 0.045); }
-.envelope-dust i:nth-child(3) { margin: 6px 0 0 2px;
-  width: calc(var(--seal-size) * 0.045); height: calc(var(--seal-size) * 0.04); }
-
-
-/* ==========================================================================
-   6. OPENING CHOREOGRAPHY
-   --------------------------------------------------------------------------
-   JavaScript advances data-state on a fixed schedule; every duration and
-   intra-phase offset lives here. Nothing depends on transitionend, so a
-   dropped frame or a skipped transition can never strand the UI.
-   ========================================================================== */
-
-/* ---- Phase 1 · PRESS : the wax yields under the finger ---- */
-[data-state="pressed"] .seal {
-  scale: 0.9;
-  animation: none;
-  filter: drop-shadow(0 2px 3px rgba(20, 4, 8, 0.55));
-}
-
-/* ---- Phase 2 · BREAK : the seal gives way, both halves fall ---- */
-[data-state="breaking"] .seal,
-[data-state="open"] .seal,
-[data-state="revealed"] .seal {
-  animation: none;
-  opacity: 0;
-  scale: 0.86;
-  transition: transform 300ms ease-in var(--d-break),
-              scale     300ms ease-in var(--d-break),
-              opacity    300ms linear calc(var(--d-break) + 320ms);
-}
-
-[data-state="breaking"] .seal__half,
-[data-state="open"] .seal__half,
-[data-state="revealed"] .seal__half { opacity: 0; }
-
-[data-state="breaking"] .seal__half--l,
-[data-state="open"] .seal__half--l,
-[data-state="revealed"] .seal__half--l {
-  transform: translate3d(-46%, 128%, 0) rotate(-26deg);
-}
-
-[data-state="breaking"] .seal__half--r,
-[data-state="open"] .seal__half--r,
-[data-state="revealed"] .seal__half--r {
-  transform: translate3d(52%, 116%, 0) rotate(31deg);
-}
-
-[data-state="breaking"] .envelope-dust i,
-[data-state="open"] .envelope-dust i,
-[data-state="revealed"] .envelope-dust i {
-  animation: dust-fall 900ms cubic-bezier(0.4, 0, 0.7, 1) var(--d-break) forwards;
-}
-
-[data-state="breaking"] .envelope-dust i:nth-child(2),
-[data-state="open"] .envelope-dust i:nth-child(2),
-[data-state="revealed"] .envelope-dust i:nth-child(2) {
-  animation-delay: calc(var(--d-break) + 70ms);
-}
-
-[data-state="breaking"] .envelope-dust i:nth-child(3),
-[data-state="open"] .envelope-dust i:nth-child(3),
-[data-state="revealed"] .envelope-dust i:nth-child(3) {
-  animation-delay: calc(var(--d-break) + 130ms);
-}
-
-@keyframes dust-fall {
-  0%   { opacity: 0; transform: translate3d(0, 0, 4px) scale(1); }
-  12%  { opacity: 1; }
-  100% { opacity: 0; transform: translate3d(14px, 150%, 0) scale(0.7) rotate(140deg); }
-}
-
-/* ---- Phase 3 · OPEN : the flap swings back on its hinge ---- */
-[data-state="open"] .envelope__flap,
-[data-state="revealed"] .envelope__flap { transform: rotateX(-173deg); }
-
-[data-state="open"] .envelope__flap { opacity: 0; }
-[data-state="revealed"] .envelope__flap { opacity: 0; }
-
-[data-state="open"] .envelope-stage,
-[data-state="revealed"] .envelope-stage { transform: rotateX(7deg); }
-
-[data-state="open"] .envelope-stage::after { opacity: 0.5; }
-
-/* ---- Phase 4 · RISE : the invitation lifts out ---- */
-[data-state="open"] .envelope__card,
-[data-state="revealed"] .envelope__card {
-  transform: translate3d(0, -46%, 6px) scale(1.035);
-}
-
-[data-state="open"] .envelope__card-face {
-  box-shadow:
-    0 0 0 1px rgba(150, 124, 90, 0.24) inset,
-    0 34px 54px -26px rgba(30, 16, 6, 0.72);
-}
-
-
-/* ==========================================================================
-   7. INVITATION
-   ========================================================================== */
-
-.invitation {
+.canvas {
   position: fixed;
   inset: 0;
-  height: var(--vh);
-  z-index: 10;
-  display: grid;
-  place-items: center;
-  overflow-y: auto;
-  overscroll-behavior: contain;
-  padding:
-    max(2.5rem, env(safe-area-inset-top))
-    max(1.5rem, env(safe-area-inset-right))
-    max(2.5rem, env(safe-area-inset-bottom))
-    max(1.5rem, env(safe-area-inset-left));
-  visibility: hidden;
-}
-
-/* Visibility is gated on the class alone — never on a transition finishing.
-   If a transition were ever dropped, the invitation must still appear; the
-   photograph is unveiled by the stage receding above it, not by fading up
-   through its own stacking context. */
-.js .invitation.is-in { visibility: visible; }
-
-/* ---- Layer 1 · the photograph ----
-   Two surfaces, so the sharp frame can sit *above* its own blurred,
-   darkened surround. (A blurred pseudo-element on the same element would
-   paint on top of that element's background, not behind it.) */
-.invitation__backdrop {
-  position: absolute;
-  inset: 0;
-  z-index: -3;
-  overflow: hidden;
-  background-color: var(--ground);
-  transform: scale(1.08);
-  opacity: 0;
-  transition: transform 1500ms var(--e-out), opacity 1100ms var(--e-out);
-}
-
-.js .invitation.is-in .invitation__backdrop { transform: scale(1); opacity: 1; }
-
-.invitation__ambient,
-.invitation__plate {
-  position: absolute;
-  display: block;
+  z-index: 0;
+  background-image: url("background/background02.png");
   background-repeat: no-repeat;
-}
-
-.invitation__plate {
-  inset: 0;
-  background-image: url("background/background.jpg");
+  background-position: 50% 50%;
   background-size: cover;
-  background-position: 50% 36%;
 }
 
-/* Only earns its cost on wide screens, where the plate cannot fill alone. */
-.invitation__ambient { display: none; }
-
-/* ---- Layer 2 · legibility veil — shaped, never a flat sheet ---- */
-.invitation__scrim {
-  position: absolute;
-  inset: 0;
-  z-index: -2;
-  pointer-events: none;
-  background:
-    radial-gradient(118% 74% at 50% 44%,
-      rgba(26, 16, 10, 0.5) 0%, rgba(24, 15, 9, 0.3) 44%,
-      rgba(18, 11, 7, 0.08) 72%, transparent 100%),
-    linear-gradient(180deg,
-      rgba(14, 9, 6, 0.46) 0%, rgba(14, 9, 6, 0.06) 24%,
-      rgba(14, 9, 6, 0.08) 70%, rgba(14, 9, 6, 0.52) 100%);
-}
-
-/* ---- Layer 3 · paper tooth across the whole composition ---- */
-.invitation__grain {
-  position: absolute;
-  inset: 0;
-  z-index: -1;
-  pointer-events: none;
-  opacity: 0.07;
-  mix-blend-mode: overlay;
-  background-image: url("assets/textures/paper-grain.svg");
-  background-size: 220px 220px;
-}
-
-/* ---- Layer 3b · corner vignette, to seat the photograph in the dark ---- */
-.invitation__vignette {
-  position: absolute;
-  inset: 0;
-  z-index: 0;
-  pointer-events: none;
-  background: radial-gradient(128% 88% at 50% 42%,
-    transparent 44%, rgba(10, 6, 4, 0.34) 78%, rgba(8, 5, 3, 0.62) 100%);
-  opacity: 0;
-  transition: opacity 1400ms var(--e-out) 260ms;
-}
-.js .invitation.is-in .invitation__vignette { opacity: 1; }
-
-/* ---- Layer 3c · gold motes, drifting up through the light ---- */
-.motes {
-  position: absolute;
-  inset: 0;
-  z-index: 0;
-  pointer-events: none;
-  overflow: hidden;
-}
-.motes i {
-  position: absolute;
-  left: var(--x);
-  bottom: -6%;
-  width: 2px;
-  height: 2px;
-  border-radius: 50%;
-  background: rgba(255, 226, 168, 0.9);
-  box-shadow: 0 0 5px 1px rgba(226, 186, 116, 0.5);
-  opacity: 0;
-  animation: mote-drift 13s linear var(--d) infinite;
-  animation-delay: var(--d);
-}
-.motes i:nth-child(2n) { width: 1.5px; height: 1.5px; }
-
-@keyframes mote-drift {
-  0%   { opacity: 0; transform: translate3d(0, 0, 0) scale(var(--s, 1)); }
-  12%  { opacity: 0.75; }
-  70%  { opacity: 0.5; }
-  100% { opacity: 0; transform: translate3d(22px, -104vh, 0) scale(var(--s, 1)); }
-}
-
-/* Motes only make sense once the invitation is the thing on screen. */
-.motes i { animation-play-state: paused; }
-.js .invitation.is-in .motes i { animation-play-state: running; }
-
-/* ---- Layer 4 · a single slow breath of light across the composition ----
-   Lives on the backdrop, not on .invitation. As a child of .invitation it was
-   painted in the negative z-index layer, i.e. behind the opaque plate, so the
-   sweep never actually showed; and its inset:-25% box (150% of the viewport)
-   became scrollable overflow, making a phone invitation scroll ~225px while its
-   real content was only ~320px tall. The backdrop is inset:0 and clips, and the
-   scrim and .invitation__inner follow it in the DOM, so the sweep now reads
-   above the photograph but still beneath the type. */
-.invitation__backdrop { overflow: hidden; }
-
-.invitation__backdrop::after {
-  content: "";
-  position: absolute;
-  inset: -25%;
-  pointer-events: none;
-  background: linear-gradient(102deg,
-    transparent 36%, rgba(255, 242, 218, 0.075) 47%,
-    rgba(255, 242, 218, 0.03) 53%, transparent 64%);
-  animation: light-sweep 26s ease-in-out 4s infinite;
-}
-
-@keyframes light-sweep {
-  0%        { transform: translate3d(-26%, 0, 0); opacity: 0; }
-  18%       { opacity: 1; }
-  58%       { transform: translate3d(26%, 0, 0);  opacity: 0; }
-  58%, 100% { transform: translate3d(26%, 0, 0);  opacity: 0; }
-}
-
-/* ---- Botanical line-art, framing rather than filling ---- */
-.sprigs { position: absolute; inset: 0; z-index: -1; pointer-events: none; }
-
-.sprig {
-  position: absolute;
-  top: 50%;
-  width: clamp(38px, 6.5vw, 74px);
-  height: auto;
-  color: var(--gold);
-  opacity: 0;
-  transition: opacity 1300ms var(--e-out) var(--d-reveal),
-              transform 1500ms var(--e-out) var(--d-reveal);
-}
-
-.sprig--r { right: clamp(1rem, 5vw, 5.5rem); transform: translate(-50%, -50%) translateX(16px); }
-.sprig--l { left:  clamp(1rem, 5vw, 5.5rem); transform: translate(-50%, -50%) translateX(-16px); }
-
-.js .invitation.is-in .sprig { opacity: 0.5; transform: translate(-50%, -50%) translateX(0); }
-
-/* ---- Content column ---- */
-.invitation__inner {
+.invitation {
   position: relative;
+  z-index: 1;
   width: 100%;
-  max-width: 44rem;
+  padding-inline: var(--gutter);
+  padding-block: 24svh 26svh;
+}
+
+.sheet {
+  max-width: var(--measure);
   margin-inline: auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
   text-align: center;
+}
+
+.orn {
+  color: var(--gold);
+}
+
+.orn svg {
+  display: block;
+  width: clamp(3.4rem, 17vw, 4.6rem);
+  height: auto;
+}
+
+.orn--crown {
+  margin-bottom: 12svh;
+}
+
+.orn--foot {
+  margin-top: 16svh;
+}
+
+.orn--foot svg {
+  transform: scaleY(-1);
+}
+
+.names {
+  margin: 0;
+  font-family: "Bettrisia", "Snell Roundhand", cursive;
+  font-weight: 400;
+  line-height: 1;
+  color: var(--ink);
   display: flex;
   flex-direction: column;
   align-items: center;
 }
 
-/* ---------- Names · the focal point ---------- */
-.names {
-  display: flex;
-  align-items: baseline;
-  justify-content: center;
-  flex-wrap: wrap;
-  gap: 0 clamp(0.5rem, 2.4vw, 1.5rem);
-  font-size: clamp(2.5rem, 12.5vw, 6.25rem);
-  font-weight: 300;
-  line-height: 0.98;
-  letter-spacing: 0.015em;
-  color: var(--ivory);
-  text-shadow: 0 2px 26px rgba(10, 6, 3, 0.55), 0 1px 2px rgba(10, 6, 3, 0.4);
-  opacity: 0;
-  transform: translate3d(0, 22px, 0);
-  filter: blur(10px);
-  transition: opacity 950ms var(--e-out) var(--d-reveal),
-              transform 1050ms var(--e-out) var(--d-reveal),
-              filter    1150ms var(--e-out) var(--d-reveal);
+.names__line {
+  display: block;
+  font-size: clamp(3.4rem, 17vw, 6rem);
+  line-height: 1.04;
+  white-space: nowrap;
+  letter-spacing: 0.005em;
 }
-
-.names__part { unicode-bidi: isolate; }
 
 .names__amp {
-  font-style: italic;
-  font-weight: 300;
-  font-size: 0.5em;
-  color: var(--gold-soft);
-  transform: translateY(-0.08em);
+  display: block;
+  font-size: clamp(1.5rem, 7.4vw, 2.6rem);
+  line-height: 1.1;
+  color: var(--gold);
+  margin-block: 0.16em 0.1em;
 }
 
-.js .invitation.is-in .names {
-  opacity: 1;
-  transform: translate3d(0, 0, 0);
-  filter: blur(0);
-}
-
-/* ---------- Ornamental rule ---------- */
 .rule {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: clamp(0.6rem, 2vw, 1rem);
-  width: min(78%, 22rem);
-  margin-block: clamp(1.1rem, 3.4vh, 2rem);
-  opacity: 0;
-  transform: scaleX(0.62);
-  transition: opacity 850ms var(--e-out) calc(var(--d-reveal) + 200ms),
-              transform 950ms var(--e-out) calc(var(--d-reveal) + 200ms);
+  gap: clamp(0.7rem, 3vw, 1.1rem);
+  width: min(100%, 17rem);
+  color: var(--gold-soft);
 }
 
 .rule__line {
-  flex: 1;
+  flex: 1 1 auto;
   height: 1px;
-  background: linear-gradient(90deg, transparent, var(--gold-hair) 40%, var(--gold-hair));
-}
-.rule__line:last-child {
-  background: linear-gradient(270deg, transparent, var(--gold-hair) 40%, var(--gold-hair));
+  background-color: currentColor;
+  opacity: 0.8;
 }
 
 .rule__mark {
-  flex: none;
-  width: 5px;
-  height: 5px;
-  border: 1px solid var(--gold-soft);
+  flex: 0 0 auto;
+  width: 0.42rem;
+  height: 0.42rem;
+  background-color: currentColor;
   transform: rotate(45deg);
 }
 
-.js .invitation.is-in .rule { opacity: 1; transform: scaleX(1); }
+.rule--broad {
+  margin-top: 7svh;
+}
 
-/* ---------- Date ---------- */
+.rule--fine {
+  width: min(100%, 11rem);
+  margin-top: 11svh;
+  opacity: 0.9;
+}
+
 .date {
-  font-size: clamp(0.82rem, 3.5vw, 1.4rem);
-  font-weight: 400;
-  letter-spacing: 0.36em;
-  text-transform: uppercase;
-  color: var(--ivory-soft);
-  text-shadow: 0 1px 18px rgba(10, 6, 3, 0.5);
-  opacity: 0;
-  transform: translate3d(0, 14px, 0);
-  filter: blur(5px);
-  transition: opacity 850ms var(--e-out) calc(var(--d-reveal) + 350ms),
-              transform 900ms var(--e-out) calc(var(--d-reveal) + 350ms),
-              filter    950ms var(--e-out) calc(var(--d-reveal) + 350ms);
+  margin: 4.5svh 0 0;
+  font-family: "Bettrisia", "Snell Roundhand", cursive;
+  font-size: clamp(1.05rem, 4.6vw, 1.6rem);
+  line-height: 1.5;
+  color: var(--ink-2);
+  letter-spacing: 0.1em;
 }
 
-.js .invitation.is-in .date {
-  opacity: 1;
-  transform: translate3d(0, 0, 0);
-  filter: blur(0);
-}
-
-/* ---------- Venue ---------- */
 .venue {
-  margin-top: clamp(1.4rem, 4.2vh, 2.4rem);
-  font-family: var(--font-arabic);
-  font-size: clamp(1.08rem, 4.4vw, 1.7rem);
-  font-weight: 400;
-  line-height: 1.75;
-  color: var(--ivory);
-  text-shadow: 0 1px 20px rgba(10, 6, 3, 0.55);
-  opacity: 0;
-  transform: translate3d(0, 14px, 0);
-  filter: blur(6px);
-  transition: opacity 850ms var(--e-out) calc(var(--d-reveal) + 620ms),
-              transform 900ms var(--e-out) calc(var(--d-reveal) + 620ms),
-              filter    950ms var(--e-out) calc(var(--d-reveal) + 620ms);
+  margin: 8svh 0 0;
+  max-width: 22rem;
+  font-size: clamp(1.1rem, 5.1vw, 1.85rem);
+  line-height: 1.85;
+  color: var(--ink);
+  text-wrap: balance;
 }
 
-.js .invitation.is-in .venue {
-  opacity: 1;
-  transform: translate3d(0, 0, 0);
-  filter: blur(0);
-}
-
-/* ---------- Notes · present, never dominant ---------- */
 .notes {
-  margin-top: clamp(1.5rem, 4.4vh, 2.6rem);
+  margin-top: 46svh;
   display: flex;
   flex-direction: column;
-  align-items: center;
-  gap: 0.3em;
-  opacity: 0;
-  transform: translate3d(0, 12px, 0);
-  filter: blur(3px);
-  transition: opacity 850ms var(--e-out) calc(var(--d-reveal) + 900ms),
-              transform 900ms var(--e-out) calc(var(--d-reveal) + 900ms),
-              filter    950ms var(--e-out) calc(var(--d-reveal) + 900ms);
-}
-
-.js .invitation.is-in .notes {
-  opacity: 1;
-  transform: translate3d(0, 0, 0);
-  filter: blur(0);
-}
-
-.notes__hair {
-  width: 34px;
-  height: 1px;
-  margin-bottom: 0.75em;
-  background: linear-gradient(90deg, transparent, var(--ivory-faint), transparent);
+  gap: 0.85em;
+  color: var(--ink-3);
 }
 
 .notes__line {
-  font-family: var(--font-arabic);
-  font-size: clamp(0.8rem, 3vw, 1.02rem);
-  line-height: 1.9;
-  color: var(--ivory-mute);
-  text-shadow: 0 1px 12px rgba(10, 6, 3, 0.5);
+  margin: 0;
+  font-size: clamp(0.92rem, 3.9vw, 1.12rem);
+  line-height: 2.05;
+  letter-spacing: 0.02em;
 }
 
-
-/* ==========================================================================
-   8. STATE HAND-OFF
-   ========================================================================== */
-
-/* The hint retires the moment the seal is committed to. The entrance is an
-   animation; pressing cancels it outright so its fill-mode can never win
-   the argument over opacity. */
-.hint {
-  font-family: var(--font-arabic);
-  font-size: clamp(0.78rem, 3.1vw, 0.95rem);
-  letter-spacing: 0.04em;
-  color: var(--ivory-mute);
-  text-shadow: 0 1px 14px rgba(10, 6, 3, 0.6);
+.js [data-reveal] {
   opacity: 0;
-  transition: opacity 420ms linear;
-  animation: hint-in 1200ms var(--e-out) 850ms both,
-             hint-drift 7s ease-in-out 2.4s infinite;
+  transform: translateY(1.15rem);
+  filter: blur(3px);
 }
 
-@keyframes hint-in {
-  from { opacity: 0; transform: translate3d(0, 8px, 0); }
-  to   { opacity: 1; transform: translate3d(0, 0, 0); }
+.js [data-reveal].is-in {
+  opacity: 1;
+  transform: none;
+  filter: none;
+  transition:
+    opacity 1.15s cubic-bezier(0.22, 0.61, 0.36, 1),
+    transform 1.15s cubic-bezier(0.22, 0.61, 0.36, 1),
+    filter 0.85s cubic-bezier(0.22, 0.61, 0.36, 1);
 }
 
-@keyframes hint-drift {
-  0%, 100% { transform: translate3d(0, 0, 0); }
-  50%      { transform: translate3d(0, -3px, 0); }
-}
-
-/* The hint retires the moment the seal is committed to, and stays retired.
-   Every post-tap state is listed, not just the transient ones: matching only
-   pressed/breaking meant that on reaching the terminal revealed state the rule
-   stopped applying and hint-in's forwards fill snapped the hint back to
-   opacity 1 — "tap the seal" left on screen with no seal left to tap.
-   animation:none removes the entrance outright so no fill-mode can win. */
-[data-state="pressed"] .hint,
-[data-state="breaking"] .hint,
-[data-state="open"] .hint,
-[data-state="revealed"] .hint {
-  animation: none;
-  opacity: 0;
-  transition: opacity 300ms linear;
-}
-
-
-/* ==========================================================================
-   9. RESPONSIVE
-   ========================================================================== */
-
-/* ---- Wide screens · the photograph is presented as a portrait plate ----
-   background.jpg is 600x923 — portrait. A plain `cover` on a landscape
-   viewport would crop away roughly two thirds of it while stretching a
-   600px source across 1900px. Instead the sharp image keeps its
-   proportions, its edges melt into a darkened blurred copy of itself, and
-   the composition is never distorted. */
-@media (min-width: 760px) {
-  .invitation__plate {
-    background-size: auto min(128vh, 1240px);
-    background-position: 50% 50%;
-    -webkit-mask-image: linear-gradient(90deg,
-      transparent 0%, #000 9%, #000 91%, transparent 100%);
-    mask-image: linear-gradient(90deg,
-      transparent 0%, #000 9%, #000 91%, transparent 100%);
+@media (min-width: 48rem) {
+  .invitation {
+    padding-block: 28svh 30svh;
   }
 
-  .invitation__ambient {
-    display: block;
-    inset: -7%;
-    background-image: url("background/background.jpg");
-    background-size: cover;
-    background-position: 50% 40%;
-    filter: blur(36px) saturate(1.06) brightness(0.54);
-    transform: scale(1.05);
+  .names__line {
+    font-size: 5.4rem;
   }
 
-  .invitation__scrim {
-    background:
-      radial-gradient(78% 62% at 50% 46%,
-        rgba(26, 16, 10, 0.46) 0%, rgba(24, 15, 9, 0.26) 46%,
-        rgba(18, 11, 7, 0.06) 74%, transparent 100%),
-      linear-gradient(180deg,
-        rgba(14, 9, 6, 0.4) 0%, rgba(14, 9, 6, 0.04) 22%,
-        rgba(14, 9, 6, 0.06) 72%, rgba(14, 9, 6, 0.46) 100%);
+  .names__amp {
+    font-size: 2.3rem;
+  }
+
+  .orn--crown {
+    margin-bottom: 14svh;
+  }
+
+  .orn--foot {
+    margin-top: 18svh;
+  }
+
+  .rule--broad {
+    margin-top: 8svh;
+  }
+
+  .rule--fine {
+    margin-top: 12svh;
+  }
+
+  .date {
+    margin-top: 5svh;
+  }
+
+  .venue {
+    margin-top: 9svh;
+  }
+
+  .notes {
+    margin-top: 50svh;
   }
 }
-
-/* ---- Short landscape phones · protect the vertical budget ---- */
-@media (max-height: 560px) and (orientation: landscape) {
-  :root { --env-w: min(52vw, 72vh, 440px); }
-
-  .envelope-scene__inner { gap: 1rem; }
-  .names      { font-size: clamp(1.9rem, 8.2vh, 3.2rem); }
-  .rule       { margin-block: 0.55rem; }
-  .venue      { margin-top: 0.9rem; }
-  .notes      { margin-top: 0.9rem; }
-  .sprig      { width: clamp(28px, 9vh, 50px); }
-}
-
-/* ---- Small phones ---- */
-@media (max-width: 380px) {
-  :root { --env-w: min(88vw, 44vh, 540px); }
-  .names { letter-spacing: 0; }
-  .date  { letter-spacing: 0.26em; }
-  .sprig--r { right: 0.3rem; }
-  .sprig--l { left:  0.3rem; }
-}
-
-/* ---- Large desktop · generous whitespace, controlled measure ---- */
-@media (min-width: 1440px) {
-  :root { --env-w: min(46vh, 560px); }
-  .invitation__inner { max-width: 52rem; }
-  .sprig { width: 88px; }
-}
-
-
-/* ==========================================================================
-   10. REDUCED MOTION
-   --------------------------------------------------------------------------
-   The envelope still opens — the interaction is the entire point. Only the
-   movement is simplified, and the reveal is brought forward.
-   ========================================================================== */
 
 @media (prefers-reduced-motion: reduce) {
-  :root {
-    --t-press: 110ms;
-    --t-break: 260ms;
-    --t-flap: 340ms;
-    --t-rise: 380ms;
-    --t-dissolve: 300ms;
-    --d-break: 60ms;
-    --d-flap: 90ms;
-    --d-rise: 220ms;
-    --d-reveal: 200ms;
-    --d-scene-hide: 500ms;
-  }
-
-  .envelope-scene__aura,
-  .seal,
-  .seal__gloss,
-  .seal__pulse,
-  .envelope-dust i,
-  .motes i,
-  .invitation__backdrop::after {
-    animation: none !important;
-  }
-
-  /* The curtain and the rise are entrance theatre; drop them entirely. */
-  .js .envelope-scene,
-  .js .envelope-scene__inner,
-  .envelope-scene__veil { animation: none !important; }
-
-  .envelope-scene__veil { display: none; }
-  .js .envelope-scene { opacity: 1; }
-  .js .envelope-scene__inner { opacity: 1; transform: none; }
-
-  /* Blur is movement wearing a disguise — a cross-fade alone is the honest
-     reduced-motion version of the same beat. */
-  .names,
-  .date,
-  .venue,
-  .notes { filter: none !important; }
-
-  .invitation__backdrop::after { opacity: 0; }
-
-  .hint {
-    animation: none !important;
-    opacity: 1;
-    transition: opacity 300ms linear 420ms;
-  }
-
-  [data-state="pressed"] .hint,
-  [data-state="breaking"] .hint {
-    opacity: 0;
-    transition: none;
-  }
-
-  .seal__pulse { opacity: 0; }
-  .envelope-stage,
-  .envelope-stage::after { transition: none; }
-
-  [data-state="open"] .envelope-stage,
-  [data-state="revealed"] .envelope-stage { transform: none; }
-
-  .envelope__flap {
-    transition: transform var(--t-flap) linear var(--d-flap),
-                opacity    200ms linear 420ms;
-  }
-
-  [data-state="open"] .envelope__flap,
-  [data-state="revealed"] .envelope__flap {
-    transform: rotateX(-166deg);
-    opacity: 0;
-  }
-
-  .envelope__card,
-  .envelope__card-face { transition-duration: var(--t-rise); }
-
-  [data-state="open"] .envelope__card,
-  [data-state="revealed"] .envelope__card { transform: translate3d(0, -28%, 0); }
-
-  /* Matches the .js-prefixed state rule at the top of the file, which is one
-     class more specific — without the prefix this never applied and reduced
-     motion still got the 1.09 scale-up. */
-  .js .envelope-scene.is-gone .envelope-scene__inner { transform: none; }
-
-  .invitation__backdrop { transform: none; transition: opacity 400ms linear; }
-  .js .invitation.is-in .invitation__backdrop { transform: none; }
-  .invitation__ambient { filter: none; }
-
-  .names,
-  .rule,
-  .date,
-  .venue,
-  .notes,
-  .sprig {
+  .js [data-reveal] {
     transform: none;
-    transition: opacity 400ms linear var(--d-reveal) !important;
+    filter: none;
+  }
+
+  .js [data-reveal].is-in {
+    transition: opacity 0.4s linear;
+  }
+
+  .orn--foot svg {
+    transform: none;
   }
 }
