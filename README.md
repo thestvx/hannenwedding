@@ -1,7 +1,7 @@
 # Hanene & Smail — Wedding Invitation
 
 A single, mobile-first digital wedding invitation, built as a React + Vite app
-and deployed to GitHub Pages.
+and deployed to Cloudflare Pages.
 
 The first view is a full-screen gate on `background04.png`. Pressing **anywhere**
 on it opens the invitation, which is set on `background03.png` and scrolls like a
@@ -28,7 +28,7 @@ index.html            document shell, fonts, metadata, <noscript> fallback
 src/main.jsx          React entry
 src/App.jsx           gate-vs-invitation state, body scroll lock
 src/components/
-  Gate.jsx            background04 gate, any-click handler, bloom transition
+  Gate.jsx            background04 gate, full-bleed <button>, fade transition
   Invitation.jsx      background03 card, masked artwork, stacked details
   ScrollFloat.jsx     supplied GSAP scroll-float component
   ScrollFloat.css     styles for the above
@@ -39,7 +39,6 @@ public/
   fonts/              Janna 2 Thin, Bettrisia Script Alt
   fonts.css           @font-face declarations
   assets/svg/         favicon
-.github/workflows/deploy.yml   builds and publishes to GitHub Pages
 ```
 
 Static images live in `public/` and are referenced by path. Vite does not process
@@ -50,16 +49,24 @@ resolve against the bundled stylesheet under `/assets/` and 404.
 
 ## Design notes
 
-**The gate.** `background04.png` fills the screen. The click handler is on the
-gate itself rather than the seal, so a press anywhere opens it. The seal is a
-real `<button>`, so the gate is still reachable by keyboard. `sessionStorage` key
+**The gate.** `background04.png` fills the screen and *is* the control: there is
+no envelope or seal, the whole frame is one real `<button>`, so a press anywhere
+enters and the gate is still reachable by keyboard. `sessionStorage` key
 `hanene.gate.opened` remembers the choice for the rest of the session; a revisit
 goes straight to the card.
 
-**The artwork.** Every supplied vector is a single warm near-black (`#392d2d`)
-drawing on a transparent ground. Each one is used as a CSS `mask-image` and
-filled with a light tone, so the shapes, proportions and antialiasing are the
-original pixels and only the colour changes to suit the dark `background03`.
+**The artwork.** Each supplied vector is used as a CSS `mask-image`, so the
+shapes, proportions and antialiasing are the original pixels and only the fill
+changes.
+
+**The fill is not uniform, and deliberately so.** The bismillah and the icons are
+single near-black (`#392d2d`) drawings on a transparent ground, and they sit on
+the dark middle of `background03`, so they take the light `--art-tone`. The
+chandelier is *not* a near-black vector — `thorya.png` is a light cream drawing
+(mean `rgb(207,204,199)`) — and it sits at the very top, where `background03` is
+light. Measured there, a light fill reaches only **2.1:1** and reads as a smudge,
+while `#392d2d` reaches **3.9:1**. So the chandelier takes the dark fill: the same
+colour family as the bismillah, chosen for the ground it actually stands on.
 
 **Contrast.** `background03` is dark, so all text is light cream over a dark
 halo. Measured against the background across six viewports, the worst block
@@ -71,32 +78,51 @@ or filter is applied to either. Everything is baked into the artwork and the
 type, as supplied.
 
 **The chandelier** is sized to fill the content column (100% of the measure on
-mobile, 97% on desktop) and is anchored to the very top of the page. Its
-intrinsic 1:1 ratio is preserved via `aspect-ratio`, so it is never stretched.
+mobile, 97% on desktop) and is anchored to the very top of the page. Its real
+intrinsic size is `358×376`, so `aspect-ratio` is `0.952` — forcing `1:1` would
+stretch it by about 5%.
 
 **Icons sit above their text**, on their own line, rather than beside them.
 
-**Motion.** The `[data-reveal]` blocks fade up on an `IntersectionObserver`. The
-names use the supplied `ScrollFloat` component; each word owns its own
-`ScrollTrigger`, so the three words float in in sequence as they are reached.
-`ScrollTrigger.refresh()` runs once the gate is gone, because the triggers are
-first built while the page is still scroll-locked behind it.
+**Motion.** Three things move, in sequence.
+
+1. The chandelier **drops in from above the page** (`chandelier-drop`, a
+   `translateY(-85vh)` to `0`) the moment the gate clears. It is armed by
+   `.invitation.is-open` rather than running on load, because the card is mounted
+   and hidden behind the gate — a plain animation would play unseen and be over
+   before the visitor ever saw it.
+2. The bismillah and each verse line **fade in** as they are reached, via an
+   `IntersectionObserver` on `[data-fade]`.
+3. The names use the supplied `ScrollFloat` component; each word owns its own
+   `ScrollTrigger`, so the words float in in sequence as they are reached.
+   `ScrollTrigger.refresh()` runs once the gate is gone, because the triggers are
+   first built while the page is still scroll-locked behind it.
 
 **Reduced motion.** Under `prefers-reduced-motion: reduce` the gate transition
-collapses to a plain fade, `[data-reveal]` drops its transform, and the names
-render as plain text in the same wrappers — GSAP is not started at all.
+and the fade-ins collapse to plain opacity with no travel, the chandelier appears
+without its drop, and the names render as plain text in the same wrappers — GSAP
+is not started at all.
 
 **Without JavaScript** the React root is empty, so `index.html` carries a
 `<noscript>` block with the names, date, venue and notes over `background03`.
 
 ## Deployment
 
-`.github/workflows/deploy.yml` builds with Node 20 and publishes `dist/` to
-GitHub Pages on every push to `main`.
+Deployed to Cloudflare Pages from this repository. On every push to `main`,
+Cloudflare runs `npm run build` and publishes `dist/`.
 
-One setting is required in the repository, once: **Settings → Pages → Build and
-deployment → Source → GitHub Actions**. The workflow will not run until this is
-set.
+Three settings in the Cloudflare Pages project, set once:
 
-`vite.config.js` sets `base: './'` so the build works from a repository
-sub-path without further configuration.
+| Setting | Value |
+| --- | --- |
+| Framework preset | `None` |
+| Build command | `npm run build` |
+| Build output directory | `dist` |
+| Root directory | *(empty)* |
+
+`vite.config.js` sets `base: './'` so the build works from a sub-path without
+further configuration.
+
+A build that publishes the repository root instead of `dist/` serves
+`/src/main.jsx` and answers `fonts.css` as `text/html`. The tell is a MIME error
+in the console and a `fonts.css` request that comes back as markup.
