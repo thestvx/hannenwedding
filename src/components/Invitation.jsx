@@ -137,9 +137,33 @@ export default function Invitation({ revealed, focusNames = false }) {
   const chandelierRef = useRef(null);
   const reduced = usePrefersReducedMotion();
 
-  // The scroll reveals for the artwork, which is driven here. The text is not
-  // in this system at all -- it is driven by GSAP inside SplitText. Two systems
-  // never touch the same element, so they cannot fight over opacity.
+  // The scroll reveals. The ARTWORK is driven here, and so is the presence of
+  // each text block -- but not the text's own entrance, which is GSAP inside
+  // SplitText. The two never write to the same element's opacity: a text block
+  // joins this system through a wrapper, and the wrapper's opacity multiplies
+  // with its children's rather than replacing it.
+  //
+  // The reveal is TWO-WAY. It used to latch: the first time a block came into
+  // view it was given .is-in and then unobserved, so it stayed on the page for
+  // good once seen. That reads as a page that only ever builds up, and it leaves
+  // the card showing everything at once as soon as the guest scrolls back. Now
+  // .is-in tracks presence: a block is shown while it is in or near the viewport
+  // and fades back out as it leaves, so scrolling up puts the page back the way
+  // it was found and the card reads as one continuous surface rather than a
+  // stack of things that have already happened.
+  //
+  // The hysteresis is the element's own height, not a fudge factor. An element is
+  // shown once its top passes 88% of the way down the viewport, and hidden only
+  // once its bottom has left the top -- so the band between those two points is
+  // as tall as the element and a small scroll jitter at the boundary cannot
+  // chatter the class back and forth. It also cannot flash, because by the time
+  // it is hidden the element is off screen.
+  //
+  // The text blocks are in this system through a wrapper of their own rather
+  // than by moving the SplitText tween: the characters' entrance stays a
+  // once-per-visit event, and the wrapper's opacity multiplies with theirs
+  // instead of competing, so scrolling back up and down again does not replay
+  // the whole splitting animation every time.
   useEffect(() => {
     if (!revealed) return undefined;
 
@@ -150,10 +174,10 @@ export default function Invitation({ revealed, focusNames = false }) {
     //   [data-reveal] rises and fades as it is reached
     //   [data-fade]   fades only, with no travel
     //   [data-settle] settles up from slightly small, for the photograph
-    // The text is driven by GSAP SplitText instead, and is in none of the three,
-    // so no two systems ever write to the same element's opacity. That is why
-    // the icons carry data-fade themselves rather than their .details wrapper
-    // carrying data-reveal: the wrapper also holds SplitText-driven text.
+    // The text blocks carry data-fade on their wrapper -- .names, .details,
+    // .notes and the guestbook -- and the icons carry it on themselves as well,
+    // since an icon is artwork and belongs in here on its own account rather
+    // than by riding on a wrapper that may not be on screen.
     const targets = Array.from(
       root.querySelectorAll('[data-reveal], [data-fade], [data-settle]')
     );
@@ -164,13 +188,17 @@ export default function Invitation({ revealed, focusNames = false }) {
       return undefined;
     }
 
+    // The bottom margin is the reveal lead-in: a block starts appearing a little
+    // before its top reaches the bottom of the screen, so it is already resolved
+    // by the time it is read rather than fading in under the guest's eye. The top
+    // edge is deliberately not margined, so a block that has scrolled up out of
+    // view is let go straight away instead of lingering.
     const io = new IntersectionObserver(
       (entries) => {
         entries.forEach((entry) => {
-          if (entry.isIntersecting) {
-            entry.target.classList.add('is-in');
-            io.unobserve(entry.target);
-          }
+          // toggle, not add-and-forget: this is the whole difference between a
+          // reveal that tracks the guest and one that latches
+          entry.target.classList.toggle('is-in', entry.isIntersecting);
         });
       },
       { rootMargin: '0px 0px -12% 0px', threshold: 0.01 }
@@ -188,6 +216,7 @@ export default function Invitation({ revealed, focusNames = false }) {
   }, [revealed]);
 
   // The chandelier sits in the flow at the top of the card and fades out over
+
   // the first stretch of scroll, so it starts disappearing as soon as the guest
   // scrolls and is not left hanging over the page for the whole read.
   //
@@ -295,10 +324,12 @@ export default function Invitation({ revealed, focusNames = false }) {
       >
         <article className="sheet">
           <header className="opening">
-            {/* thorya.png, in its own supplied colour, exactly as it was drawn.
-                Nothing is put behind it or on it -- no overlay, scrim, tint,
-                gradient, filter, mask, blend mode, background or shadow -- and it
-                is not stretched: 358x376 is its real ratio and the CSS keeps it.
+            {/* thorya2.png, shown exactly as it was drawn. Nothing is put behind
+                it or on it: no overlay, scrim, tint, gradient, filter, mask,
+                blend mode, box or shadow -- all of those are explicitly reset in
+                .chandelier rather than merely left unset. The only thing that
+                touches the image is the drop-in below, which moves it and fades
+                it in, and the wrapper's scroll fade.
 
                 It is NOT fixed. It sits at the top of the card in the normal
                 flow, and the wrapper around it is scrubbed to opacity 0 over
@@ -315,10 +346,10 @@ export default function Invitation({ revealed, focusNames = false }) {
             <div className="chandelier-wrap" ref={chandelierRef} aria-hidden="true">
               <img
                 className="chandelier"
-                src={asset('vectors/thorya.png')}
+                src={asset('vectors/thorya2.png')}
                 alt=""
-                width="358"
-                height="376"
+                width="736"
+                height="736"
                 decoding="async"
               />
             </div>
@@ -408,7 +439,7 @@ export default function Invitation({ revealed, focusNames = false }) {
             />
           </div>
 
-          <h1 className="names" id="names" ref={namesRef} tabIndex={-1}>
+          <h1 className="names" id="names" ref={namesRef} tabIndex={-1} data-fade>
             <Names reduced={reduced} />
           </h1>
 
@@ -421,7 +452,7 @@ export default function Invitation({ revealed, focusNames = false }) {
           {/* icon on its own line, the value on the line below it. The icons
               carry the reveal so they are not double-animated along with the
               text that SplitText now drives. */}
-          <div className="details">
+          <div className="details" data-fade>
             <div className="detail">
               <Art file="vectors/date.png" ratio={1} className="art--icon" data-fade />
               {/* Latin run, so chars: there is no shaping to break, and it is
@@ -481,7 +512,7 @@ export default function Invitation({ revealed, focusNames = false }) {
             <i className="rule__line" />
           </div>
 
-          <div className="notes">
+          <div className="notes" data-fade>
             <Art file="vectors/pin.png" ratio={1} className="art--icon art--icon--pin" data-fade />
             {/* Supplied with kashida runs, [5,7,6] and [4,5,5], so these are
                 the supplied letters and the supplied elongations and nothing

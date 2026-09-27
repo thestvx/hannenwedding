@@ -21,13 +21,18 @@
      property of the text, not of the picture. */
   --halo: 0 0 10px rgba(22, 13, 11, 0.92), 0 0 3px rgba(22, 13, 11, 0.85);
 
-  /* The chandelier. thorya.png is 358x376, which is a chandelier drawn taller
-     than it is wide, and that ratio is its own -- not 1:1. The element is sized
-     from that custom property and reserves its own height from it, so the first
-     real line of text never lands underneath the drawing.
+  /* The chandelier. thorya2.png is 736x736 -- a square canvas -- but the
+     drawing inside it is 635x719: 86.3% of the width and 97.7% of the height,
+     an ink ratio of 0.883 rather than 1. So the box is sized from the ink, not
+     from the square, or the visible chandelier would come out a seventh
+     narrower than intended. --chandelier-w is that box, picked so the drawing
+     itself lands at the width the previous still used: 0.863 of 27.5rem is
+     23.7rem, and 0.913 of the old 26rem box was the same 23.7rem.
+     aspect-ratio stays 736/736, because that is the FILE's ratio and the
+     transparent padding is the file's own -- not something to crop away.
 
      It is in the normal flow, so nothing has to reserve space for it. */
-  --chandelier-w: min(26rem, 92vw);
+  --chandelier-w: min(27.5rem, 92vw);
 
   --gutter: clamp(1.35rem, 5.5vw, 2.5rem);
   --measure: 33rem;
@@ -821,14 +826,44 @@ body.is-sealed .invitation {
   display: block;
   width: var(--chandelier-w);
   height: auto;
-  /* thorya.png's own ratio. 358x376 is not 1:1, and forcing a square would
-     stretch the drawing by about 5%. */
-  aspect-ratio: 358 / 376;
-  /* No shadow, no filter: stated rather than merely omitted. */
+  /* thorya2.png's own ratio. The canvas is square even though the drawing in
+     it is not, and forcing the ink's 0.883 instead would squeeze the file. */
+  aspect-ratio: 736 / 736;
+}
+
+/* The artwork is shown exactly as supplied. Every one of these is stated rather
+   than merely left unset, so that a later rule cannot quietly reintroduce one,
+   and so the intent is readable here rather than inferred from an absence:
+   nothing tints it, recolours it, shades it, masks it, blends it, or gives it a
+   box to sit in. The only thing that touches it is the drop-in keyframe, which
+   moves it and fades it in -- no filter is involved at any point. */
+.chandelier,
+.chandelier-wrap {
   box-shadow: none;
-  filter: none;
   text-shadow: none;
+  filter: none;
+  -webkit-filter: none;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  mix-blend-mode: normal;
   background: none;
+  background-image: none;
+  mask: none;
+  -webkit-mask: none;
+  clip-path: none;
+  outline: none;
+  border: none;
+}
+
+/* The drawing and nothing drawn under it. */
+.chandelier::before,
+.chandelier::after,
+.chandelier-wrap::before,
+.chandelier-wrap::after {
+  content: none;
+}
+
+.chandelier {
   /* purely decorative, and it covers a lot of screen: it must never eat a
      click meant for the text underneath it */
   pointer-events: none;
@@ -901,7 +936,7 @@ body.is-sealed .invitation {
 
 @media (min-width: 48rem) {
   :root {
-    --chandelier-w: min(32rem, 92vw);
+    --chandelier-w: min(33.9rem, 92vw);
   }
 
   .invitation {

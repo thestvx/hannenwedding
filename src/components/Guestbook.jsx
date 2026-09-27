@@ -86,7 +86,7 @@ export default function Guestbook() {
   const done = status === 'ok';
 
   return (
-    <section className="guestbook" aria-labelledby={`${uid}-title`}>
+    <section className="guestbook" aria-labelledby={`${uid}-title`} data-fade>
       <h2 className="guestbook__title" id={`${uid}-title`}>
         لهـــــا، في أجمــــل أيامهـــــا
       </h2>

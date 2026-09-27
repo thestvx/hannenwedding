@@ -44,7 +44,7 @@ functions/
   api/guestbook.js    Pages Function: validates, throttles, sends to Telegram
 public/
   background/         background03.png (card), background04.png (gate)
-  vectors/            thorya, bsm, bark, date, gps, pin, namephoto
+  vectors/            thorya2, bsm, bark, date, gps, pin, namephoto
   fonts/              JF Flat regular (Arabic body), Bettrisia Script Alt (names)
   fonts.css           @font-face declarations
   assets/svg/         favicon
@@ -99,14 +99,13 @@ shapes, proportions and antialiasing are the original pixels and only the fill
 changes. They sit on the dark middle of `background03`, so they take the light
 `--art-tone`.
 
-**The chandelier keeps its own colours.** `thorya.png` is not a near-black vector
-— it is a light cream drawing (mean `rgb(207,204,199)`) — so it is *not* masked
+**The chandelier keeps its own colours.** `thorya2.png` is not a near-black vector
+— it is a light cream drawing (mean `rgb(196,186,163)`) — so it is *not* masked
  and *not* recoloured. It is
 dropped in as an ordinary element with no overlay, filter, `mix-blend-mode` or
 background, exactly as supplied. That was a deliberate correction: the previous
 build masked it to `#392d2d`, and the fix was rejected — the chandelier keeps the
-colour it was drawn in. It now sits **behind** the type rather than in front of
-it, so the light drawing never has to compete with the text.
+colour it was drawn in.
 
 The consequence is stated plainly: measured at the top of the page, where
 `background03` is light, the original cream chandelier reaches only about
@@ -133,13 +132,30 @@ drop-in keyframe is on the `<img>` inside it, deliberately — both animate opac
 and two systems writing opacity on the same element would fight, with whichever
 started last winning.
 
-It is `public/vectors/thorya.png` — the `358×376` still — sized from
-`--chandelier-w: min(26rem, 92vw)` (`min(32rem, 92vw)` on desktop) with
-`aspect-ratio: 358 / 376`, which is the file's own ratio. Forcing `1:1` would
-stretch the drawing by about 5%, so the ratio is asserted in the verifier against
-both the rendered box and `naturalWidth/naturalHeight`. A `thorayavideo.webm`
-transparent loop was tried in place of it and then reverted on request; nothing in
-the build references it and the file is no longer in the repository.
+It is `public/vectors/thorya2.png` — the `736×736` file, on request. Its canvas is
+square, but the drawing inside it is not: the opaque ink measures `635×719`, which
+is 86.3% of the width and 97.7% of the height. So the element is sized from the
+**ink**, not the square. `--chandelier-w: min(27.5rem, 92vw)`
+(`min(33.9rem, 92vw)` on desktop) puts the drawing at ~380px, which is what the
+previous `thorya.png` still came out at once its own 91% ink ratio is accounted
+for; picking a box the same size as the old one would have made the new drawing a
+seventh narrower. `aspect-ratio` stays `736 / 736`, because that is the file's own
+ratio and the transparent padding belongs to the file — cropping it away would be
+an edit to the artwork, which is exactly what was asked not to happen.
+
+Nothing is done to the pixels or the box around them. `filter`, `box-shadow`,
+`text-shadow`, `backdrop-filter`, `mix-blend-mode`, `background`, `mask`,
+`clip-path` and the `::before`/`::after` of both the image and its wrapper are each
+stated as `none` in `.chandelier` rather than merely left unset, so a later rule
+cannot quietly reintroduce one. The verifier asserts every one of those as well as
+the `736×736` natural size, and measures the file's alpha bounds to confirm the
+**drawing** — not the transparent padding — still fits inside every viewport.
+
+A `thorayavideo.webm` transparent loop was tried in place of the still and then
+reverted on request; nothing in the build references it and the file is no longer
+in the repository. The earlier `thorya.png` is also no longer referenced; it is
+left in `vectors/` rather than deleted, since deleting a supplied asset is not
+something to do unasked.
 
 `html { overflow-x: clip }` is kept for a different reason now: `.names` and
 `.portrait__caption` are both `width: 100vw` pulled back onto the sheet with a
@@ -233,8 +249,17 @@ triggers layout. `contain: strict` keeps them out of the overflow calculation.
    `.invitation.is-open` rather than running on load, because the card is mounted
    and hidden behind the gate — a plain animation would play unseen and be over
    before the visitor ever saw it.
-2. The bismillah, the rules and the icons **fade in** as they are reached, via an
-   `IntersectionObserver` on `[data-fade]`.
+2. The bismillah, the rules, the portrait, the names, the details, the notes and
+   the guestbook **fade in** as they are reached, via an `IntersectionObserver` on
+   `[data-fade]`, `[data-reveal]` and `[data-settle]`. This observer is
+   **two-way**: it toggles `.is-in` from `entry.isIntersecting` instead of adding
+   the class once and unobserving. Scrolling back up therefore takes each block
+   out again, and the card returns to how it was found rather than being left
+   fully lit. Hysteresis comes from the asymmetric `rootMargin`
+   (`0px 0px -12% 0px`): a block starts appearing once its top passes 88% of the
+   way down the viewport, and is only released once it has left the top entirely,
+   so the band between those two moments is as tall as the block and small scroll
+   jitter at the boundary cannot chatter the class back and forth.
 3. Every piece of **text** — all three verse lines, the three name fragments, the
    date, the venue and both notes, ten blocks in all — is animated by the
    supplied `SplitText` component, which staggers them in. `ScrollTrigger.refresh()`
@@ -242,6 +267,15 @@ triggers layout. `contain: strict` keeps them out of the overflow calculation.
    is still scroll-locked behind it.
 4. The **chandelier fades out** and the **names drift**, both scrubbed or looping
    off scroll position as described above.
+
+The text blocks are in the reveal system through a wrapper of their own —
+`data-fade` on `.names`, `.details`, `.notes` and `.guestbook` — rather than by
+moving the `SplitText` tween. Two reasons. Their entrance stays a once-per-visit
+event, so scrolling up and down does not replay the whole splitting animation each
+time; and a parent's `opacity` multiplies with its children's instead of competing
+for it, which is what lets the two systems coexist on the same subtree without
+either clipping the other. The decorative `.rule` separators are `aria-hidden`
+and carry `data-reveal` themselves, since they hold no text.
 
 **Arabic is split per word, not per character.** The report was that the Arabic
 looked broken on a phone, with the letters visibly detached. The cause was
@@ -275,11 +309,14 @@ Everything else did get larger.
 
 **Reduced motion.** `usePrefersReducedMotion()` in `Invitation.jsx` tracks the
 media query live, so a change takes effect without a reload. When it matches, the
-gate transition and the `[data-fade]` blocks collapse to plain opacity with no
-travel, the chandelier appears without its drop and without the scroll fade, every
+gate transition and the reveal blocks — `[data-fade]`, `[data-reveal]` and
+`[data-settle]` alike — collapse to plain opacity with no travel, the chandelier
+appears without its drop and without the scroll fade, every
 `SplitText` is passed `reduced` — it renders the text as plain markup with no
 `.split-char` or `.split-word` spans and GSAP is never started for it — the names
-do not drift, and the petals are removed from the page entirely.
+do not drift, and the petals are removed from the page entirely. The scroll-up
+fade-out still happens, because it is opacity only and nothing travels; only the
+movement is given up.
 
 **Without JavaScript** the React root is empty, so `index.html` carries a
 `<noscript>` block with the names, date, venue and notes over `background03`.
