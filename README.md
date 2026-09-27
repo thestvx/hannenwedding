@@ -44,7 +44,7 @@ functions/
   api/guestbook.js    Pages Function: validates, throttles, sends to Telegram
 public/
   background/         background03.png (card), background04.png (gate)
-  vectors/            thorya, bsm, bark, date, gps, pin, namephoto
+  vectors/            thorayavideo, thorya (its poster), bsm, bark, date, gps, pin, namephoto
   fonts/              JF Flat regular (Arabic body), Bettrisia Script Alt (names)
   fonts.css           @font-face declarations
   assets/svg/         favicon
@@ -99,14 +99,14 @@ shapes, proportions and antialiasing are the original pixels and only the fill
 changes. They sit on the dark middle of `background03`, so they take the light
 `--art-tone`.
 
-**The chandelier keeps its own colours.** `thorya.png` is not a near-black vector
-— it is a light cream drawing (mean `rgb(207,204,199)`) — so it is *not* masked
-and *not* recoloured. It is dropped in as an ordinary `<img>` with no overlay,
-filter, `mix-blend-mode` or background, exactly as supplied. That was a deliberate
-correction: the previous build masked it to `#392d2d`, and the fix was rejected —
-the chandelier keeps the colour it was drawn in. It now sits **behind** the type
-rather than in front of it, so the light drawing never has to compete with the
-text.
+**The chandelier keeps its own colours.** `thorayavideo.webm` is not a near-black
+vector — it is a light cream drawing, and the still `thorya.png` used as its poster
+averages `rgb(207,204,199)` — so it is *not* masked and *not* recoloured. It is
+dropped in as an ordinary element with no overlay, filter, `mix-blend-mode` or
+background, exactly as supplied. That was a deliberate correction: the previous
+build masked it to `#392d2d`, and the fix was rejected — the chandelier keeps the
+colour it was drawn in. It now sits **behind** the type rather than in front of
+it, so the light drawing never has to compete with the text.
 
 The consequence is stated plainly: measured at the top of the page, where
 `background03` is light, the original cream chandelier reaches only about
@@ -129,29 +129,61 @@ the top of the card and fades out over the first 60% of a viewport of scrolling,
 driven by a `ScrollTrigger` scrub on the wrapper. Nothing is drawn under it: no
 `box-shadow`, no `filter`, no `::before`/`::after`, no scrim, and the stock
 `background03` is not darkened to compensate. The fade is on the wrapper and the
-drop-in keyframe is on the `<img>` inside it, deliberately — both animate opacity,
+drop-in keyframe is on the `<video>` inside it, deliberately — both animate opacity,
 and two systems writing opacity on the same element would fight, with whichever
 started last winning.
 
-It is still sized from a CSS custom property pair so its space is reserved exactly:
-`--chandelier-w: min(26rem, 92vw)` and
-`--chandelier-h: calc(var(--chandelier-w) / 0.95213)`. The `0.952` is the real
-intrinsic ratio of `358×376`; forcing `1:1` would stretch it by about 5%.
-`.opening` reserves that height with
-`padding-top: calc(var(--chandelier-h) + 3svh)`, so the first real line of text is
-never underneath the chandelier, and `.opening > *:not(.chandelier-wrap)` is given
-`position: relative; z-index: 1` to sit above it.
+It is a **video now, not a still**: `public/vectors/thorayavideo.webm`, the supplied
+transparent clip (`640×352`, 6.53s), played as `muted loop playsInline autoplay`
+with `disablePictureInPicture` and `tabIndex={-1}` — it is decoration, so it is
+`aria-hidden` and pointer-transparent. The intrinsic `width`/`height` attributes
+and `aspect-ratio: 640 / 352` are set so its space is reserved before it loads.
+
+It also carries `poster="vectors/thorya.png"`. Under reduced motion it does not
+autoplay and `preload` is `none`, and a paused video with nothing preloaded has no
+decoded frame at all — it renders as an empty box, so the chandelier would simply
+be **missing** for exactly the visitors who asked for less motion. The poster is
+the same drawing, so it is invisible as a choice, and it is `154KB` where the clip
+is `2.3MB`, which those visitors then never download. Verified by decoding the
+poster under `prefers-reduced-motion: reduce` and asserting the clip is paused.
+
+Its **box is wider than the screen on purpose**. The clip's own drawing occupies
+about 61% of the frame's width with transparent padding either side, so the frame
+is sized to `1.522 ×` the drawing's target width (`min(39.6rem, 140vw)`, and
+`min(48.7rem, 140vw)` on desktop) and pulled back onto the centre with
+`margin-inline: calc(50% - var(--chandelier-frame-w) / 2)`. Sizing it to `100vw`
+instead would shrink the chandelier by a third to reveal nothing but empty
+transparency. `html { overflow-x: clip }` is what keeps that from becoming a
+sideways scroll — `clip`, not `hidden`, because `hidden` would make the root a
+scroll container. The drop-in keyframe is on `y`, and `.chandelier-wrap` does not
+clip vertically, so the chandelier still falls in from above the fold.
 
 `ScrollSmoother` is deliberately *not* used. It wraps the page in a transformed
 element, which is unnecessary now that nothing is pinned, and it would also
 hijack touch scrolling on phones. The smooth feel comes from the eased tweens
 instead.
 
-**The names drift where they stand.** A continuous idle tween — `y += 0.55rem`,
-`x += 0.3rem`, `5.5s`, `sine.inOut`, `yoyo` — on each name fragment, so they float
-in place rather than moving. It is separate from the entrance, and it targets the
-`.split-parent` blocks rather than the character spans, so it does not fight
-`SplitText` for the same transforms.
+**The names float upward, slowly.** A continuous idle tween — `y -= 0.6rem`,
+`6.4s`, `sine.inOut`, `yoyo`, staggered `1.4s` — on each name block, so each name
+rises and settles back rather than moving side to side. There is deliberately
+**no horizontal component**: a left/right drift made the names look like they were
+sliding off. It is separate from the entrance, and it targets the `.split-parent`
+blocks rather than the character spans, so it does not fight `SplitText` for the
+same transforms.
+
+**The names have room to be seen in.** Each `.split-parent` carries its own
+`padding-block: 0.42em` and `padding-inline: 0.36em`, and the `&` block has
+`0.16em` above and `0.74em` below, so ascenders, descenders and the ampersand's
+own overhang all clear the character line box. Without it the `Hanene` `H` and the
+`Smail` tails were being clipped by their own overflow box.
+
+**The caption sits under the photograph**, `من حُـــــب الصغــــــر الى حُــــــــب العمـــــــر`,
+on its own line, inside `.portrait` rather than after it — so it moves with the
+photo. The supplied elongations are long runs (`[5,6]` and `[8,7]`), so like the
+notes it is sized off the longest run and split **per word**, never per character,
+because a letter on its own loses its shaping. It is a full-bleed line
+(`100vw`, pulled back with `margin-inline: calc(50% - 50vw)`) and scales with
+`clamp()`.
 
 **Icons sit above their text**, on their own line, rather than beside them.
 
@@ -255,11 +287,15 @@ scale is dropped so it simply appears.
 
 **The guestbook is a server-side form, not a `fetch` from the page.**
 `Guestbook.jsx` posts a name and a message to `/api/guestbook`, which is a
-Cloudflare Pages Function in `functions/api/guestbook.js`. The Telegram bot token
-lives in that function's environment and is never sent to the browser. This is the
-whole point: a token in client JavaScript is readable by anyone who opens
-devtools, and with it anyone could read the guestbook, or use the bot to message
-every guest themselves. Do not move it into `src/`.
+Cloudflare Pages Function in `functions/api/guestbook.js`. The heading is
+`لهـــــا، في أجمــــل أيامهـــــا`, the line under it is
+`اتركولي كلمة حلوة، أخليها ذكرى من يومي الجميل`, and the button reads `أرسل` —
+all supplied text, kept verbatim, with the same per-word splitting as the notes
+so the elongations survive. A thin rule separates the block from the notes above
+it. The Telegram bot token lives in that function's environment and is never sent
+to the browser. This is the whole point: a token in client JavaScript is readable
+by anyone who opens devtools, and with it anyone could read the guestbook, or use
+the bot to message every guest themselves. Do not move it into `src/`.
 
 The function defends a public endpoint that sends messages, in this order:
 

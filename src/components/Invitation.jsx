@@ -209,7 +209,9 @@ export default function Invitation({ revealed, focusNames = false }) {
   //
   // Long and yoyoed with a sine ease, which is what makes it read as floating
   // rather than pulsing: sine.inOut spends most of its time near the extremes,
-  // so the names hang almost still and drift between them.
+  // so the names hang almost still and drift between them. At 6.4s each way
+  // that is 12.8s for a full cycle -- slow enough to be noticed only when
+  // watched, and slow enough that no single frame of it looks like a jump.
   useEffect(() => {
     if (!revealed) return undefined;
     const root = namesRef.current;
@@ -219,12 +221,18 @@ export default function Invitation({ revealed, focusNames = false }) {
     const targets = gsap.utils.toArray('.names .split-parent', root);
     if (!targets.length) return undefined;
 
+    // Upward, on y alone. The drift used to carry an x component as well, which
+    // made the names wander sideways; there is only one axis now, so the motion
+    // reads as a rise and not as a wander.
+    //
+    // The three names are a long way apart in time, so they are never in step:
+    // Hanene is on its way down while Smail has not started. That offset is
+    // what makes it read as floating rather than as a single block breathing.
     const tween = gsap.to(targets, {
-      y: '+=0.55rem',
-      x: '+=0.3rem',
-      duration: 5.5,
+      y: '-=0.6rem',
+      duration: 6.4,
       ease: 'sine.inOut',
-      stagger: 0.9,
+      stagger: 1.4,
       repeat: -1,
       yoyo: true
     });
@@ -267,8 +275,22 @@ export default function Invitation({ revealed, focusNames = false }) {
           <header className="opening">
             {/* In its own supplied colour, untouched: no mask, no overlay, no
                 scrim, no tint, no gradient, no filter, and no shadow of any
-                kind. 358x376 is its real intrinsic size, so the ratio is 0.952
-                and not 1 -- forcing 1:1 would stretch it by about 5%.
+                kind. thorayavideo.webm is the chandelier as a 6.5s transparent
+                loop, and it is played exactly as supplied -- the alpha in the
+                file is the alpha on the page, so there is nothing to mask and
+                nothing to recolour.
+
+                Its frame is 640x352, but the drawing inside it only occupies the
+                middle ~60% of the width and ~90% of the height, so the element
+                is sized from that measured content, not from the frame. See
+                --chandelier-frame-w in styles.css: sizing it off the frame
+                would have shrunk the chandelier by a third.
+
+                muted + autoplay + loop + playsInline is the only combination
+                browsers will autoplay at all, and playsInline is what stops iOS
+                from hijacking the page into fullscreen. Under reduced motion it
+                does not play: the first frame stands in, which is a still
+                photograph of the same drawing.
 
                 It is NOT fixed. It sits at the top of the card in the normal
                 flow, and the wrapper fades it out over the first stretch of
@@ -278,12 +300,25 @@ export default function Invitation({ revealed, focusNames = false }) {
                 space for it, and the text that lifted itself above it with a
                 z-index no longer has to. */}
             <div className="chandelier-wrap" ref={chandelierRef} aria-hidden="true">
-              <img
+              <video
                 className="chandelier"
-                src={asset('vectors/thorya.png')}
-                alt=""
-                width="358"
-                height="376"
+                src={asset('vectors/thorayavideo.webm')}
+                width="640"
+                height="352"
+                muted
+                loop
+                playsInline
+                autoPlay={!reduced}
+                preload={reduced ? 'none' : 'auto'}
+                // A paused video with preload="none" has no decoded frame at
+                // all, so without a poster the chandelier renders as an empty
+                // box under reduced motion -- the drawing would simply be gone
+                // for the visitors who asked for less motion. The still is the
+                // same drawing, 154KB rather than 2.3MB, and it is only ever
+                // shown while the clip is not playing.
+                poster={asset('vectors/thorya.png')}
+                disablePictureInPicture
+                tabIndex={-1}
               />
             </div>
 
@@ -351,6 +386,24 @@ export default function Invitation({ revealed, focusNames = false }) {
               width="619"
               height="787"
               decoding="async"
+            />
+            {/* Under the photograph, on its own line. The kashida runs are
+                supplied -- [5,6] and [8,7] -- so it is sized off the longest
+                one like the notes, and split per word so the letters stay
+                joined. */}
+            <SplitText
+              text="من حُـــــب الصغــــــر الى حُــــــــب العمـــــــر"
+              tag="p"
+              dir="rtl"
+              lang="ar"
+              className="portrait__caption"
+              splitType="words"
+              delay={reduced ? 0 : 90}
+              duration={1.1}
+              ease="power3.out"
+              from={{ opacity: 0, y: 18 }}
+              to={{ opacity: 1, y: 0 }}
+              reduced={reduced}
             />
           </div>
 
@@ -451,6 +504,16 @@ export default function Invitation({ revealed, focusNames = false }) {
                 reduced={reduced}
               />
             ))}
+          </div>
+
+          {/* The rule that has always separated the blocks, used once more to
+              close off the house rules before the card starts asking for
+              something back. Same three pieces as every other rule, so the
+              guestbook reads as part of the invitation and not as a widget. */}
+          <div className="rule rule--fine" data-reveal aria-hidden="true">
+            <i className="rule__line" />
+            <i className="rule__mark" />
+            <i className="rule__line" />
           </div>
 
           {/* Last thing on the card, after the house rules: the two notes are

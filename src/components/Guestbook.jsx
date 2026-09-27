@@ -88,9 +88,9 @@ export default function Guestbook() {
   return (
     <section className="guestbook" aria-labelledby={`${uid}-title`}>
       <h2 className="guestbook__title" id={`${uid}-title`}>
-        رسالة إلى العروسين
+        لهـــــا، في أجمــــل أيامهـــــا
       </h2>
-      <p className="guestbook__lede">اكتبوا لنا كلمة حلوة، توصلنا مباشرة</p>
+      <p className="guestbook__lede">اتركولي كلمة حلوة، أخليها ذكرى من يومي الجميل</p>
 
       <form className="guestbook__form" ref={formRef} onSubmit={onSubmit} noValidate>
         <div className="guestbook__field">
@@ -131,7 +131,7 @@ export default function Guestbook() {
         </div>
 
         <button className="guestbook__send" type="submit" disabled={busy || done}>
-          {busy ? MESSAGES.sending : done ? MESSAGES.ok : 'أرسلوا'}
+          {busy ? MESSAGES.sending : done ? MESSAGES.ok : 'أرسل'}
         </button>
 
         {/* The one live region on the page: a send either succeeds or explains

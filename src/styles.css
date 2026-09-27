@@ -21,10 +21,21 @@
      property of the text, not of the picture. */
   --halo: 0 0 10px rgba(22, 13, 11, 0.92), 0 0 3px rgba(22, 13, 11, 0.85);
 
-  /* The chandelier. 358/376 is its real intrinsic ratio; 100% is written as vw
-     so the drawing is the same width at every viewport. It is in the normal
-     flow, so nothing has to reserve space for it any more. */
+  /* The chandelier. thorayavideo.webm is 640x352, but that is the frame, not
+     the drawing: measured across the loop, only about 60% of the frame's width
+     and 90% of its height is ink, the rest is transparent padding either side
+     of a chandelier that is drawn wider than it is tall.
+
+     So the element is sized from the ink, not from the frame. --chandelier-w is
+     the width the drawing is meant to appear at, and --chandelier-frame-w is
+     the whole video box that produces it: 0.913/0.60 of the drawing's width,
+     which is what the still image was already showing. Centred on the sheet, so
+     the transparent padding hangs off both sides and is clipped by the body's
+     overflow-x rather than widening the page.
+
+     It is in the normal flow, so nothing has to reserve space for it. */
   --chandelier-w: min(26rem, 92vw);
+  --chandelier-frame-w: min(39.6rem, 140vw);
 
   --gutter: clamp(1.35rem, 5.5vw, 2.5rem);
   --measure: 33rem;
@@ -39,6 +50,13 @@
 html {
   background-color: var(--paper);
   -webkit-text-size-adjust: 100%;
+  /* The chandelier video's box is deliberately wider than the screen -- the
+     frame is 1.5x the drawing so its transparent padding can hang off both
+     sides -- and this is what stops that from turning into a sideways scroll.
+     clip rather than hidden on purpose: hidden would make the root a scroll
+     container, which is the thing being avoided here. The body rule below only
+     ever sees the content, so it can stay as it was. */
+  overflow-x: clip;
 }
 
 body {
@@ -238,27 +256,44 @@ body.is-sealed .invitation {
 
 /* SplitText sets overflow:hidden inline, to mask its characters as they rise.
    A script face like Bettrisia throws well outside the em box -- long ascenders
-   above and a long tail below -- and a 1.05 line-height put both outside that
-   clip, which is what cut the tops off. The generous line-height and the
-   padding are inside the clip, so the swashes now have somewhere to go. */
+   above and a long tail below -- and the swash of the H and the tail of the e
+   run past the advance width sideways. The box is an inline-block, so it hugs
+   the text and there is no slack anywhere by default.
+
+   Measured against the real ink (canvas metrics on the same face, size and
+   text, and overflow clipping at the padding edge) the ampersand had 3px of its
+   swash cut on the left and both names were within 4px of being cut, which is
+   what read as a name with a piece missing off it. The padding below is the
+   room that measurement asked for, plus a margin. It is inside the clip, so it
+   widens the clip rather than only moving the text, and it is the same for both
+   names because they are the same face at the same size. */
 .names .split-parent {
   max-width: 100%;
   font-family: inherit;
   font-weight: 400;
-  line-height: 1.45;
-  padding-block: 0.18em;
+  line-height: 1.5;
+  padding-block: 0.42em;
+  padding-inline: 0.36em;
 }
 
 .names .names__line {
   font-size: clamp(2.8rem, 15vw, 6rem);
 }
 
+/* The ampersand is a different size, so the same padding in em is not the same
+   number of pixels -- and its swash runs 11px past the advance, further than
+   the names' does relative to their size. Its tail also hangs 19px below the
+   baseline, which a 1.3 line-height does not cover, so the room is mostly
+   below where the tail is, with the bottom margin trimmed to pay for it and
+   keep the gap between the two names the gap it was. */
 .names .names__amp {
   display: block;
   font-size: clamp(1.5rem, 7vw, 2.6rem);
   line-height: 1.3;
   color: var(--ink-2);
-  margin-block: 0.1em 0.06em;
+  margin-block: 0.1em 0.02em;
+  padding-block: 0.16em 0.74em;
+  padding-inline: 0.7em;
 }
 
 /* --- the couple's photograph -------------------------------------------
@@ -279,6 +314,9 @@ body.is-sealed .invitation {
   width: min(100%, 17rem);
   margin-top: 5svh;
   margin-bottom: 1svh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
 }
 
 .portrait__img {
@@ -286,6 +324,23 @@ body.is-sealed .invitation {
   width: 100%;
   height: auto;
   aspect-ratio: 619 / 787;
+}
+
+/* Under the photograph, inside the same block so the reveal covers the picture
+   and its line together. It carries supplied kashida runs -- [3,6] and [5,4,3]
+   -- so, like the notes, its width is fixed by the glyph count and it is sized
+   to stay on one row. Full-bleed for the same reason: in the photograph's 17rem
+   measure the longer of the two would otherwise wrap. */
+.portrait__caption {
+  width: 100vw;
+  margin: 1.6svh 0 0;
+  margin-inline: calc(50% - 50vw);
+  padding-inline: 2vw;
+  color: var(--ink-2);
+  text-shadow: var(--halo);
+  font-size: clamp(0.88rem, 4.1vw, 1.2rem);
+  line-height: 1.8;
+  text-wrap: pretty;
 }
 
 /* --- details: the icon sits on its own line, the value below it ------- */
@@ -443,9 +498,11 @@ body.is-sealed .invitation {
    The fields are translucent over the photograph rather than a solid fill, so
    the card is still visible through them and they do not need to guess the
    colour of whatever band of background03 they happen to land on. */
+/* The rule above it already separates this from the house rules, so the top
+   margin is the air that rule needs rather than a whole screen's worth. */
 .guestbook {
   width: 100%;
-  margin-top: 14svh;
+  margin-top: 7svh;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -763,16 +820,20 @@ body.is-sealed .invitation {
 
 .chandelier {
   display: block;
-  width: var(--chandelier-w);
+  /* the whole frame, centred on the sheet so the ink lands where the still
+     image's did */
+  width: var(--chandelier-frame-w);
+  margin-inline: calc(50% - var(--chandelier-frame-w) / 2);
   height: auto;
-  aspect-ratio: 358 / 376;
-  margin-inline: auto;
+  aspect-ratio: 640 / 352;
   /* No shadow, no filter: stated rather than merely omitted. */
   box-shadow: none;
   filter: none;
   text-shadow: none;
+  background: none;
   /* purely decorative, and it covers a lot of screen: it must never eat a
-     click meant for the text underneath it */
+     click meant for the text underneath it, and a video is focusable and
+     right-clickable unless it is told otherwise */
   pointer-events: none;
   opacity: 0;
 }
@@ -844,6 +905,7 @@ body.is-sealed .invitation {
 @media (min-width: 48rem) {
   :root {
     --chandelier-w: min(32rem, 92vw);
+  --chandelier-frame-w: min(48.7rem, 140vw);
   }
 
   .invitation {
