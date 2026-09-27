@@ -3,3 +3,8 @@ dist/
 .DS_Store
 *.local
 .vite/
+
+# Cloudflare Pages Functions local secrets. The real values live in the
+# Cloudflare dashboard, never in the repository.
+functions/.dev.vars
+functions/.dev.vars.*

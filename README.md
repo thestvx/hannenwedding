@@ -6,8 +6,9 @@ and deployed to Cloudflare Pages.
 The first view is a full-screen gate on `background04.png`. Pressing **anywhere**
 on it opens the invitation, which is set on `background03.png` and scrolls like a
 printed card: a large chandelier at the top that drifts away as you scroll, the
-bismillah, the verse, the couple's names, then the date, a countdown and the venue,
-then the notes. Rose petals fall over the writing throughout.
+bismillah, the verse, the couple's photograph, their names, then the date, a
+countdown and the venue, then the notes, then a guestbook. Rose petals fall over
+the writing throughout.
 
 **هناء و إسماعيل — 15 أكتوبر 2026 — قاعة عزوز للافراح والمناسبات**
 
@@ -32,15 +33,18 @@ src/main.jsx          React entry
 src/App.jsx           gate-vs-invitation state, body scroll lock, removes #gate-boot
 src/components/
   Gate.jsx            background04 gate, full-bleed <button>, fade transition
-  Invitation.jsx      background03 card, in-flow chandelier, stacked details,
-                      maps link, names float
+  Invitation.jsx      background03 card, in-flow chandelier, portrait photo,
+                      stacked details, maps link, names float
   Countdown.jsx       days / hours / minutes / seconds to 15 October 2026
   Petals.jsx          fixed overlay of 16 falling rose petals
   SplitText.jsx       supplied GSAP text component, per-character or per-word
+  Guestbook.jsx       name + message form, posts to the Pages Function
 src/styles.css        the design
+functions/
+  api/guestbook.js    Pages Function: validates, throttles, sends to Telegram
 public/
   background/         background03.png (card), background04.png (gate)
-  vectors/            thorya, bsm, bark, date, gps, pin
+  vectors/            thorya, bsm, bark, date, gps, pin, namephoto
   fonts/              JF Flat regular (Arabic body), Bettrisia Script Alt (names)
   fonts.css           @font-face declarations
   assets/svg/         favicon
@@ -231,6 +235,63 @@ do not drift, and the petals are removed from the page entirely.
 **Without JavaScript** the React root is empty, so `index.html` carries a
 `<noscript>` block with the names, date, venue and notes over `background03`.
 
+**The couple's photograph sits above the names** and is treated as a photograph,
+not as artwork. `namephoto.png` is a real photo with a shaped (arched) alpha
+ground, so unlike the near-black vector drawings it is **not** used as a
+`mask-image` and is **not** recoloured — the shapes, tones and antialiasing are
+the original pixels, exactly as with the chandelier. It is dropped in as an
+ordinary `<img>` with no overlay, filter, `mix-blend-mode` or `box-shadow`, and it
+declares `width="619" height="787"` so the browser reserves the right box before
+the file arrives, matching its real `619×787`. CSS pins the ratio with
+`aspect-ratio: 619 / 787`, so the measured layout ratio stays `0.7866` against a
+real `0.7865` — it cannot be stretched or cropped by a font or font-size change.
+
+Its width is `min(100%, 17rem)`, which keeps it deliberately **narrower than the
+bismillah** (`min(100%, 19rem)`). It is the couple's picture, not the subject of
+the page, and it still needs to read as part of one composition rather than as a
+banner. It reveals on the same `[data-settle]` observer as the rest of the
+writing, scaling from `.94` to `1` over `1.15s`, and under reduced motion the
+scale is dropped so it simply appears.
+
+**The guestbook is a server-side form, not a `fetch` from the page.**
+`Guestbook.jsx` posts a name and a message to `/api/guestbook`, which is a
+Cloudflare Pages Function in `functions/api/guestbook.js`. The Telegram bot token
+lives in that function's environment and is never sent to the browser. This is the
+whole point: a token in client JavaScript is readable by anyone who opens
+devtools, and with it anyone could read the guestbook, or use the bot to message
+every guest themselves. Do not move it into `src/`.
+
+The function defends a public endpoint that sends messages, in this order:
+
+1. **No token configured → `503`**, logged loudly, and reported to the client as a
+   generic failure, so a misconfigured deploy does not look like a working one.
+2. **Rate limit: 3 requests per minute per IP**, applied before anything is
+   parsed or sent, so junk traffic is capped even when the payload is garbage.
+   The counter is a `Map` in the isolate, pruned once it grows past 5000 entries
+   — pruned rather than cleared, so a busy isolate does not hand everyone still
+   inside their window a free pass. It is per-isolate, so it is a throttle, not a
+   guarantee.
+3. **A honeypot field** named `website`, hidden with the clipped 1px technique
+   rather than `display: none`, which bots skip. Filling it returns `200` and
+   sends nothing, so the bot learns nothing.
+4. **Name and message are capped** at 60 and 500 characters and must each be at
+   least 2.
+5. **Invisible characters are stripped** — control codes, but also the bidi
+   controls (`U+202A`–`U+202E`, `U+2066`–`U+2069`), zero-widths and joiners
+   (`U+200B`–`U+200F`), the soft hyphen and the byte-order mark. Telegram renders
+   all of them, and a message ending in a right-to-left override displays
+   backwards, so none of them belong in a message meant to read as typed. The
+   stripping is a loop over code points rather than a regex, so this source file
+   contains no control characters of its own.
+6. **`parse_mode` is left off on purpose.** The guest's words then arrive as
+   literal text, so a guest who writes `*hello*` gets exactly that instead of
+   Telegram interpreting it. Nothing in the message needs formatting.
+7. **A Telegram failure is surfaced as `502`**, never as a success, so the guest
+   is told their message did not arrive instead of watching it disappear.
+
+Anything that is not a `POST` — a `GET` from the address bar, a `HEAD` from a
+link preview — gets a `405` and nothing else.
+
 ## Deployment
 
 Deployed to Cloudflare Pages from this repository. On every push to `main`,
@@ -244,6 +305,23 @@ Three settings in the Cloudflare Pages project, set once:
 | Build command | `npm run build` |
 | Build output directory | `dist` |
 | Root directory | *(empty)* |
+
+Two environment variables, set in the Cloudflare Pages project under
+**Settings > Environment variables**, for **both Production and Preview**:
+
+| Variable | Required | Value |
+| --- | --- | --- |
+| `TELEGRAM_BOT_TOKEN` | yes | the token from `@BotFather` |
+| `TELEGRAM_CHAT_ID` | no | which chat to post to |
+
+If `TELEGRAM_CHAT_ID` is not set, the function posts to the newest chat that has
+written to the bot, so a personal bot works with no extra setup — send the bot a
+single message once to create that chat. Setting it explicitly is more reliable,
+since `getUpdates` returns nothing if a webhook is ever attached to the bot.
+
+Locally, put the same two lines in `functions/.dev.vars`, which is git-ignored.
+Test the function itself with `npx wrangler pages dev dist` — `npm run preview`
+is plain Vite and does not run Pages Functions, so the form will fail there.
 
 `vite.config.js` sets `base: './'` so the build works from a sub-path without
 further configuration.

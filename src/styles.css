@@ -261,6 +261,33 @@ body.is-sealed .invitation {
   margin-block: 0.1em 0.06em;
 }
 
+/* --- the couple's photograph -------------------------------------------
+   namephoto.png is a photograph, arched and already cut to its own shape in
+   the file: 619x787 with 43% of it transparent around the arch, so the arch is
+   the original framing and not a CSS crop. It is therefore an ordinary <img>,
+   like the chandelier, and deliberately NOT masked -- masking a photograph
+   would throw away everything but its silhouette. The declared width and
+   height are the intrinsic ones and aspect-ratio is the real 0.7865, so it is
+   never stretched.
+
+   No shadow, no scrim, no filter, no frame: like everything else on this card
+   it sits on the background as supplied. The only thing added is the entrance
+   and the idle float, both of which animate transform and opacity alone.
+   ------------------------------------------------------------------- */
+
+.portrait {
+  width: min(100%, 17rem);
+  margin-top: 5svh;
+  margin-bottom: 1svh;
+}
+
+.portrait__img {
+  display: block;
+  width: 100%;
+  height: auto;
+  aspect-ratio: 619 / 787;
+}
+
 /* --- details: the icon sits on its own line, the value below it ------- */
 
 .details {
@@ -306,11 +333,23 @@ body.is-sealed .invitation {
   text-shadow: var(--halo);
 }
 
+/* The notes carry supplied kashida runs -- [5,7,6] and [4,5,5] -- so like the
+   verse their width is fixed by the glyph count and scales only with the font
+   size, and the longer of the two is about 40% wider than the unelongated
+   wording was. They are therefore full-bleed for the same reason the verse is:
+   in the sheet's measure the longest one no longer fits on a phone. The size
+   below is the largest that keeps both on a single row at every viewport, and
+   it is deliberately still larger than the verse -- these are the two rules the
+   guests actually have to read. */
 .notes__line {
+  width: 100vw;
   margin: 0;
-  font-size: clamp(1.2rem, 5.4vw, 1.7rem);
+  margin-inline: calc(50% - 50vw);
+  padding-inline: 2vw;
+  font-size: clamp(0.95rem, 5.2vw, 1.55rem);
   line-height: 1.95;
-  letter-spacing: 0.01em;
+  letter-spacing: 0;
+  text-wrap: pretty;
 }
 
 /* --- the venue is a link -----------------------------------------------
@@ -393,6 +432,177 @@ body.is-sealed .invitation {
   font-size: clamp(0.68rem, 2.9vw, 0.85rem);
   color: var(--ink-3);
   letter-spacing: 0.02em;
+}
+
+/* --- the guestbook ----------------------------------------------------
+   Built from the same parts as the rest of the card so it does not read as a
+   widget dropped onto an invitation: the gold of the rules for the button and
+   the focus rings, the cream ink for the type, the same dark halo, and the same
+   centred column on the same measure.
+
+   The fields are translucent over the photograph rather than a solid fill, so
+   the card is still visible through them and they do not need to guess the
+   colour of whatever band of background03 they happen to land on. */
+.guestbook {
+  width: 100%;
+  margin-top: 14svh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  color: var(--ink);
+  text-shadow: var(--halo);
+}
+
+.guestbook__title {
+  margin: 0;
+  font-size: clamp(1.05rem, 4.4vw, 1.4rem);
+  font-weight: 400;
+  color: var(--ink);
+  letter-spacing: 0.01em;
+}
+
+.guestbook__lede {
+  margin: 0.7rem 0 0;
+  font-size: clamp(0.78rem, 3.2vw, 0.95rem);
+  color: var(--ink-3);
+  line-height: 1.7;
+}
+
+.guestbook__form {
+  width: min(100%, 26rem);
+  margin-top: 2rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.1rem;
+}
+
+.guestbook__field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+  text-align: start;
+}
+
+.guestbook__label {
+  font-size: clamp(0.72rem, 3vw, 0.85rem);
+  color: var(--ink-2);
+  letter-spacing: 0.02em;
+}
+
+/* text-shadow: none, because a halo inside a field smears the caret and the
+   text the guest is looking at while they type it */
+.guestbook__input {
+  width: 100%;
+  margin: 0;
+  padding: 0.8rem 0.95rem;
+  font-family: inherit;
+  font-size: clamp(0.95rem, 4vw, 1.1rem);
+  line-height: 1.6;
+  color: var(--ink);
+  text-shadow: none;
+  background-color: rgba(22, 13, 11, 0.42);
+  border: 1px solid rgba(227, 189, 133, 0.42);
+  border-radius: 0.6rem;
+  -webkit-appearance: none;
+  appearance: none;
+  transition:
+    border-color 0.25s ease,
+    background-color 0.25s ease;
+}
+
+.guestbook__input--area {
+  resize: vertical;
+  min-height: 6.5rem;
+  line-height: 1.8;
+}
+
+.guestbook__input::placeholder {
+  color: rgba(219, 192, 172, 0.62);
+}
+
+.guestbook__input:hover {
+  border-color: rgba(227, 189, 133, 0.62);
+}
+
+.guestbook__input:focus-visible {
+  outline: 2px solid var(--gold);
+  outline-offset: 2px;
+  border-color: var(--gold);
+  background-color: rgba(22, 13, 11, 0.58);
+}
+
+.guestbook__input:disabled {
+  opacity: 0.55;
+}
+
+/* The honeypot. Deliberately not display:none and not visibility:hidden --
+   those are the two hiding styles a bot skips, and this field has to look
+   available to one. It is clipped to a single pixel instead, exactly like
+   .sr-only, so it is present in the accessibility tree and in the DOM but
+   invisible and unreachable, and the input carries tabIndex -1.
+   It is NOT pushed off screen with a large negative left: that is inside the
+   page's scrollable overflow, and it made the whole document 10000px wide. */
+.guestbook__trap {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}
+
+.guestbook__send {
+  align-self: center;
+  margin-top: 0.4rem;
+  padding: 0.8rem 2.6rem;
+  font-family: inherit;
+  font-size: clamp(0.95rem, 4vw, 1.1rem);
+  font-weight: 400;
+  color: #2a1f1f;
+  text-shadow: none;
+  background-color: var(--gold);
+  border: 0;
+  border-radius: 999px;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition:
+    transform 0.2s ease,
+    background-color 0.2s ease,
+    opacity 0.2s ease;
+}
+
+.guestbook__send:hover:not(:disabled) {
+  background-color: #f0d3a4;
+  transform: translateY(-1px);
+}
+
+.guestbook__send:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+.guestbook__send:focus-visible {
+  outline: 2px solid var(--gold);
+  outline-offset: 3px;
+}
+
+.guestbook__send:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.guestbook__status {
+  margin: 0;
+  min-height: 1.6em;
+  font-size: clamp(0.78rem, 3.2vw, 0.95rem);
+  line-height: 1.6;
+  color: var(--ink-3);
+}
+
+.guestbook__status--bad {
+  color: #f0b9a8;
 }
 
 /* --- falling petals ----------------------------------------------------
@@ -508,6 +718,23 @@ body.is-sealed .invitation {
 [data-fade].is-in {
   opacity: 1;
   transition: opacity 1.05s ease;
+}
+
+/* settles up from slightly small, with no travel: the photograph. A photo
+   arriving at full size and only fading looks like a banner being dropped, so
+   it comes up from 94% instead. Same easing as the rising reveals, so the two
+   do not read as two different pages. */
+[data-settle] {
+  opacity: 0;
+  transform: scale(0.94);
+}
+
+[data-settle].is-in {
+  opacity: 1;
+  transform: none;
+  transition:
+    opacity 1.15s cubic-bezier(0.22, 0.61, 0.36, 1),
+    transform 1.15s cubic-bezier(0.22, 0.61, 0.36, 1);
 }
 
 /* --- the chandelier ---------------------------------------------------
@@ -677,6 +904,15 @@ body.is-sealed .invitation {
   }
 
   [data-fade].is-in {
+    transition: opacity 0.4s linear;
+  }
+
+  /* the photograph still arrives, but it does not come up from small */
+  [data-settle] {
+    transform: none;
+  }
+
+  [data-settle].is-in {
     transition: opacity 0.4s linear;
   }
 

@@ -4,6 +4,7 @@ import { ScrollTrigger } from 'gsap/ScrollTrigger';
 
 import SplitText from './SplitText.jsx';
 import Countdown from './Countdown.jsx';
+import Guestbook from './Guestbook.jsx';
 import Petals from './Petals.jsx';
 
 // Assets live in public/, so they are referenced by path rather than imported
@@ -123,14 +124,17 @@ export default function Invitation({ revealed, focusNames = false }) {
     const root = rootRef.current;
     if (!root) return undefined;
 
-    // Two groups, two behaviours:
+    // Three groups, three behaviours:
     //   [data-reveal] rises and fades as it is reached
     //   [data-fade]   fades only, with no travel
-    // The text is driven by GSAP SplitText instead, and is in neither group, so
-    // no two systems ever write to the same element's opacity. That is why the
-    // icons carry data-fade themselves rather than their .details wrapper
+    //   [data-settle] settles up from slightly small, for the photograph
+    // The text is driven by GSAP SplitText instead, and is in none of the three,
+    // so no two systems ever write to the same element's opacity. That is why
+    // the icons carry data-fade themselves rather than their .details wrapper
     // carrying data-reveal: the wrapper also holds SplitText-driven text.
-    const targets = Array.from(root.querySelectorAll('[data-reveal], [data-fade]'));
+    const targets = Array.from(
+      root.querySelectorAll('[data-reveal], [data-fade], [data-settle]')
+    );
     if (!targets.length) return undefined;
 
     if (typeof IntersectionObserver === 'undefined') {
@@ -334,6 +338,22 @@ export default function Invitation({ revealed, focusNames = false }) {
             <i className="rule__line" />
           </div>
 
+          {/* The couple's photograph, arched and already cut to its own shape
+              in the file -- 619x787, 43% of it transparent around the arch --
+              so it is dropped in as an ordinary <img> like the chandelier. It is
+              a photograph, so it is not masked: masking would flatten it to a
+              silhouette. 619:787 is its real ratio, kept exactly. */}
+          <div className="portrait" data-settle>
+            <img
+              className="portrait__img"
+              src={asset('vectors/namephoto.png')}
+              alt="هناء و إسماعيل"
+              width="619"
+              height="787"
+              decoding="async"
+            />
+          </div>
+
           <h1 className="names" id="names" ref={namesRef} tabIndex={-1}>
             <Names reduced={reduced} />
           </h1>
@@ -409,7 +429,12 @@ export default function Invitation({ revealed, focusNames = false }) {
 
           <div className="notes">
             <Art file="vectors/pin.png" ratio={1} className="art--icon art--icon--pin" data-fade />
-            {['يمنع اصطحاب الأطفال', 'ممنوع التصوير لطفلياً'].map((line) => (
+            {/* Supplied with kashida runs, [5,7,6] and [4,5,5], so these are
+                the supplied letters and the supplied elongations and nothing
+                else. They are what makes the block about 40% wider than the
+                unelongated wording, which is why .notes__line is sized off the
+                longest of the two. */}
+            {['يمنـــــع اصطحـــــــاب الأطفــــــال', 'يمنــــع التصـــــوير لطفـــــاً'].map((line) => (
               <SplitText
                 key={line}
                 text={line}
@@ -427,6 +452,11 @@ export default function Invitation({ revealed, focusNames = false }) {
               />
             ))}
           </div>
+
+          {/* Last thing on the card, after the house rules: the two notes are
+              the last thing the card has to say, and the reply is the first
+              thing it invites. */}
+          <Guestbook />
         </article>
       </main>
 
