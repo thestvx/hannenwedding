@@ -21,13 +21,10 @@
      property of the text, not of the picture. */
   --halo: 0 0 10px rgba(22, 13, 11, 0.92), 0 0 3px rgba(22, 13, 11, 0.85);
 
-  /* The chandelier, in one place. 358/376 is its real intrinsic ratio; 100% is
-     written as vw, not a percentage, because the chandelier is position: fixed
-     and so resolves percentages against the viewport, while the header that
-     reserves its height resolves them against the padded page. vw is the same
-     in both, so the reserved height and the drawn height cannot drift. */
+  /* The chandelier. 358/376 is its real intrinsic ratio; 100% is written as vw
+     so the drawing is the same width at every viewport. It is in the normal
+     flow, so nothing has to reserve space for it any more. */
   --chandelier-w: min(26rem, 92vw);
-  --chandelier-h: calc(var(--chandelier-w) / 0.95213);
 
   --gutter: clamp(1.35rem, 5.5vw, 2.5rem);
   --measure: 33rem;
@@ -50,10 +47,12 @@ body {
   min-height: 100svh;
   background-color: var(--paper);
   color: var(--ink);
-  font-family: 'Tajawal', 'Segoe UI', system-ui, sans-serif;
-  /* Tajawal ships as a single Bold weight, so this asks for it by name rather
-     than letting the browser synthesise a bold from a light face. */
-  font-weight: 700;
+  font-family: 'JF Flat', 'Segoe UI', system-ui, sans-serif;
+  /* JF Flat ships as a single Regular weight. Asking for 700 would make the
+     browser synthesise a heavier face out of a regular one, which smears the
+     Arabic strokes on small screens -- which is part of what read as broken
+     lettering. 400 asks for the weight that actually exists. */
+  font-weight: 400;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   overflow-x: hidden;
@@ -104,9 +103,6 @@ body.is-sealed .invitation {
   flex-direction: column;
   align-items: center;
   width: 100%;
-  /* the chandelier is fixed and out of flow, so its height is reserved here
-     rather than by the image itself */
-  padding-top: calc(var(--chandelier-h) + 3svh);
 }
 
 /* --- the masked artwork ---------------------------------------------
@@ -317,6 +313,177 @@ body.is-sealed .invitation {
   letter-spacing: 0.01em;
 }
 
+/* --- the venue is a link -----------------------------------------------
+   The whole block -- pin and name -- is the tap target, so it is reset to look
+   like the rest of the card: no underline, no link blue, and the same halo the
+   other type has. Only the focus ring says "this is a link". */
+
+.detail--link {
+  color: inherit;
+  text-decoration: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.detail--link:focus-visible {
+  outline: 2px solid var(--gold);
+  outline-offset: 0.4rem;
+  border-radius: 0.4rem;
+}
+
+/* --- countdown ---------------------------------------------------------
+   Built from the same parts as the rest of the card: the gold of the rules,
+   the cream ink, and the same dark halo, so it reads as part of the invitation
+   rather than a widget dropped onto it. */
+
+.countdown {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1.1rem;
+  width: 100%;
+  color: var(--ink);
+  text-shadow: var(--halo);
+}
+
+.countdown__title {
+  margin: 0;
+  font-size: clamp(0.95rem, 3.6vw, 1.1rem);
+  font-weight: 400;
+  color: var(--ink-2);
+  letter-spacing: 0.02em;
+}
+
+.countdown__row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  gap: clamp(0.5rem, 2.4vw, 1.4rem);
+}
+
+.countdown__cell {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.3rem;
+  min-width: clamp(2.6rem, 12vw, 4.2rem);
+}
+
+.countdown__value {
+  /* tabular figures, so the seconds changing do not shuffle the whole row */
+  font-variant-numeric: tabular-nums;
+  font-size: clamp(1.7rem, 8vw, 2.5rem);
+  line-height: 1.1;
+  color: var(--gold);
+}
+
+/* the same diamond as the rules, used as the separator */
+.countdown__sep {
+  position: absolute;
+  top: 0.55em;
+  right: calc(-1 * clamp(0.25rem, 1.2vw, 0.7rem));
+  width: 0.3rem;
+  height: 0.3rem;
+  background-color: currentColor;
+  opacity: 0.6;
+  transform: rotate(45deg);
+}
+
+.countdown__label {
+  font-size: clamp(0.68rem, 2.9vw, 0.85rem);
+  color: var(--ink-3);
+  letter-spacing: 0.02em;
+}
+
+/* --- falling petals ----------------------------------------------------
+   A fixed, viewport-sized layer above the card, so the petals are scattered
+   over the writing as well as over the background. pointer-events: none keeps
+   the layer from swallowing a tap on the names, the venue link or the gate.
+
+   The keyframe animates only transform and opacity, so the whole thing runs on
+   the compositor: no layout, no paint, nothing to reflow the card behind it. */
+.petals {
+  position: fixed;
+  inset: 0;
+  z-index: 30;
+  overflow: hidden;
+  pointer-events: none;
+  /* a petal or two may drift past the edge; do not let that widen the page */
+  contain: strict;
+}
+
+.petal {
+  position: absolute;
+  top: 0;
+  display: block;
+  /* the teardrop: one corner sharp, the opposite one round */
+  border-radius: 50% 0 50% 0;
+  opacity: var(--petal-opacity);
+  will-change: transform, opacity;
+  animation: petal-fall var(--petal-duration) linear infinite;
+  animation-delay: var(--petal-delay);
+}
+
+/* Falls from just above the top edge to well past the bottom, swaying side to
+   side and turning as it goes. The end state repeats seamlessly: the travel
+   distance is a multiple of the sway period and the spin is a whole number of
+   turns, so the loop has no jump. */
+@keyframes petal-fall {
+  0% {
+    transform: translate3d(0, -12vh, 0) rotate(var(--petal-tilt)) rotate(0deg);
+  }
+  100% {
+    transform: translate3d(0, 112vh, 0)
+      rotate(var(--petal-tilt)) rotate(var(--petal-spin));
+  }
+}
+
+/* The sway and the spin are separate animations rather than extra keyframes,
+   so both can run on the same element without either one's progress
+   overwriting the other's transform. */
+.petal {
+  animation-name: petal-fall, petal-sway, petal-spin;
+  animation-duration: var(--petal-duration), calc(var(--petal-duration) / 2.2),
+    calc(var(--petal-duration) * 1.6);
+  animation-iteration-count: infinite, infinite, infinite;
+  animation-timing-function: linear, ease-in-out, linear;
+}
+
+@keyframes petal-sway {
+  0% {
+    translate: calc(-1 * var(--petal-sway) * 0.5rem) 0;
+  }
+  50% {
+    translate: calc(var(--petal-sway) * 0.5rem) 0;
+  }
+  100% {
+    translate: calc(-1 * var(--petal-sway) * 0.5rem) 0;
+  }
+}
+
+@keyframes petal-spin {
+  from {
+    rotate: 0deg;
+  }
+  to {
+    rotate: var(--petal-spin);
+  }
+}
+
+/* --- screen-reader only ------------------------------------------------ */
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}
+
 /* --- scroll reveals (everything except the names) --------------------- */
 
 /* rises and fades as it is reached: the rules, the details, the notes */
@@ -345,27 +512,38 @@ body.is-sealed .invitation {
 
 /* --- the chandelier ---------------------------------------------------
    In its own supplied colour, untouched: no mask, no overlay, no scrim, no
-   tint, no gradient, no filter.
+   tint, no gradient, no filter -- and no drop shadow either. The shadow
+   properties are reset explicitly rather than simply left unset, so nothing
+   can reintroduce one, and there is no ::after or ::before under it either:
+   the drawing stands on the background exactly as it was supplied.
 
-   position: fixed, so it stays at the top of the screen and does not travel
-   with the scroll. It is out of flow, so the header reserves its height with
-   padding-top (see .opening) to keep the first text clear of it.
+   It is NOT position: fixed. It sits at the top of the card in the normal
+   flow, and the wrapper around it is scrubbed to opacity 0 over the first
+   stretch of scroll, so the chandelier starts to disappear as soon as the
+   guest scrolls down instead of hovering over the page for the whole read.
 
-   It sits at z-index 0, behind the text. A positioned box paints above
-   ordinary inline content regardless of z-index, so the rules just below lift
-   the type above it -- otherwise the type would disappear behind it. */
+   The wrapper is a separate node purely so the two opacity animations cannot
+   collide: the drop-in keyframe is on the <img>, the scroll fade is on the
+   wrapper, and neither ever writes the other's property. */
+
+.chandelier-wrap {
+  /* out of flow's way, but still its own box for the GSAP scrub */
+  display: block;
+  width: 100%;
+  line-height: 0;
+  margin-bottom: 3svh;
+}
 
 .chandelier {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  margin-inline: auto;
-  z-index: 0;
   display: block;
   width: var(--chandelier-w);
   height: auto;
   aspect-ratio: 358 / 376;
+  margin-inline: auto;
+  /* No shadow, no filter: stated rather than merely omitted. */
+  box-shadow: none;
+  filter: none;
+  text-shadow: none;
   /* purely decorative, and it covers a lot of screen: it must never eat a
      click meant for the text underneath it */
   pointer-events: none;
@@ -391,13 +569,6 @@ body.is-sealed .invitation {
     opacity: 1;
     transform: translateY(0);
   }
-}
-
-/* Keep the type readable over the fixed chandelier. */
-.sheet > *,
-.opening > *:not(.chandelier) {
-  position: relative;
-  z-index: 1;
 }
 
 /* ============================== the gate ==============================
@@ -460,6 +631,14 @@ body.is-sealed .invitation {
     font-size: 2.6rem;
   }
 
+  .countdown__row {
+    gap: 1.6rem;
+  }
+
+  .countdown__sep {
+    right: -0.8rem;
+  }
+
   .rule--broad {
     margin-top: 9svh;
   }
@@ -475,10 +654,18 @@ body.is-sealed .invitation {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  /* the chandelier arrives, but it does not travel: opacity only, no drop */
+  /* the chandelier arrives, but it does not travel: opacity only, no drop,
+     and no scroll fade either -- it simply stays as it is */
   .invitation.is-open .chandelier {
     animation: none;
     opacity: 1;
+  }
+
+  /* Sixteen petals drifting past the text is exactly the kind of motion a
+     visitor asking for less of it does not want. They are removed from the
+     compositor entirely rather than merely slowed. */
+  .petals {
+    display: none;
   }
 
   [data-reveal] {

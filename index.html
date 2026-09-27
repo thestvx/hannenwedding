@@ -8,7 +8,7 @@
     <link rel="stylesheet" href="./fonts.css" />
     <link
       rel="preload"
-      href="./fonts/Tajawal-Bold.ttf"
+      href="./fonts/JF Flat regular.ttf"
       as="font"
       type="font/ttf"
       crossorigin
@@ -20,20 +20,50 @@
       type="font/otf"
       crossorigin
     />
+    <!-- background04.png is 2.9 MB. Without this the gate cannot paint until
+         the bundle has loaded, React has mounted and the browser has then
+         discovered the URL inside it, which left a blank dark screen for
+         seconds on a first visit. Preloading starts the download at the same
+         time as the HTML itself. -->
+    <link
+      rel="preload"
+      href="./background/background04.png"
+      as="image"
+      type="image/png"
+    />
     <title>Hannen &amp; Smail Invitation Wedding</title>
     <meta
       name="description"
-      content="دعوة لحضور حفل زفاف هناء وإسماعيل، 15 أكتوبر 2026، صالة عزوز للافراح والمناسبات."
+      content="دعوة لحضور حفل زفاف هناء وإسماعيل، 15 أكتوبر 2026، قاعة عزوز للافراح والمناسبات."
     />
     <meta name="color-scheme" content="dark" />
     <meta name="robots" content="index, follow" />
+
+    <!-- The gate's background, painted before React exists. An inline <style>
+         in the document resolves "./background/..." against the document base
+         URL, so unlike a rule in the bundled stylesheet it is not rewritten to
+         /assets/ and cannot 404.
+
+         It carries an id so App.jsx can remove the whole element once React has
+         mounted. Clearing `document.documentElement.style` is not enough: the
+         rule below lives in this stylesheet, not in the element's inline style,
+         so it would survive and keep flashing behind the card on a reload. -->
+    <style id="gate-boot">
+      html {
+        background-color: #443333;
+        background-image: url('./background/background04.png');
+        background-repeat: no-repeat;
+        background-position: 50% 50%;
+        background-size: cover;
+      }
+    </style>
 
     <meta property="og:type" content="website" />
     <meta property="og:locale" content="ar_AR" />
     <meta property="og:title" content="Hannen &amp; Smail Invitation Wedding" />
     <meta
       property="og:description"
-      content="دعوة لحضور حفل زفاف هناء وإسماعيل، 15 أكتوبر 2026، صالة عزوز للافراح والمناسبات."
+      content="دعوة لحضور حفل زفاف هناء وإسماعيل، 15 أكتوبر 2026، قاعة عزوز للافراح والمناسبات."
     />
     <meta name="twitter:card" content="summary" />
   </head>
@@ -48,7 +78,7 @@
         <div class="nojs__card">
           <p class="nojs__names">هناء و إسماعيل</p>
           <p class="nojs__line">15 . 10 . 2026</p>
-          <p class="nojs__line">صالة عزوز للافراح والمناسبات</p>
+          <p class="nojs__line">قاعة عزوز للافراح والمناسبات</p>
           <p class="nojs__note">يمنع اصطحاب الأطفال &middot; ممنوع التصوير لطفلياً</p>
         </div>
       </div>
@@ -60,7 +90,7 @@
           place-items: center;
           padding: 2rem;
           background: #2a1f1f url('./background/background03.png') center / cover no-repeat;
-          font-family: 'Janna 2 Thin', 'Segoe UI', system-ui, sans-serif;
+          font-family: 'JF Flat', 'Segoe UI', system-ui, sans-serif;
         }
         .nojs__card {
           max-width: 34rem;

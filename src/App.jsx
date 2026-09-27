@@ -27,6 +27,17 @@ export default function App() {
   // first paint, otherwise the invitation renders unlocked for a frame.
   useLayoutEffect(() => {
     document.body.classList.toggle('is-sealed', showGate);
+
+    // index.html paints background04.png onto <html> so the gate is never a
+    // blank screen while this bundle loads. Now that the card's own fixed
+    // .canvas is mounted and covers the viewport, drop it -- otherwise a reload
+    // that skips the gate would flash the gate's picture for a frame.
+    //
+    // The rule lives in the #gate-boot stylesheet, so the element carrying it
+    // has to go; clearing the inline style of <html> would leave it in place.
+    const boot = document.getElementById('gate-boot');
+    if (boot) boot.remove();
+    document.documentElement.style.removeProperty('background-image');
   }, [showGate]);
 
   const enter = () => {

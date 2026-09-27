@@ -1,7 +1,10 @@
 import { useEffect, useRef, useState } from 'react';
+import { gsap } from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 
 import SplitText from './SplitText.jsx';
+import Countdown from './Countdown.jsx';
+import Petals from './Petals.jsx';
 
 // Assets live in public/, so they are referenced by path rather than imported
 // (Vite does not process imports out of the public directory).
@@ -69,6 +72,10 @@ function usePrefersReducedMotion() {
   return reduced;
 }
 
+// Where the guests are: a Google Maps short link, so the pin opens the actual
+// place rather than a typed-out address.
+const MAPS_URL = 'https://maps.app.goo.gl/6RuePAV2UujnUMK57';
+
 // Hanene and Smail are Latin runs inside a dir="rtl" document, so dir="ltr"
 // is passed through to SplitText: once each character is its own inline-block
 // the base direction would otherwise reverse the run.
@@ -104,6 +111,7 @@ function Names({ reduced }) {
 export default function Invitation({ revealed, focusNames = false }) {
   const rootRef = useRef(null);
   const namesRef = useRef(null);
+  const chandelierRef = useRef(null);
   const reduced = usePrefersReducedMotion();
 
   // The scroll reveals for the artwork, which is driven here. The text is not
@@ -153,6 +161,76 @@ export default function Invitation({ revealed, focusNames = false }) {
     return () => io.disconnect();
   }, [revealed]);
 
+  // The chandelier sits in the flow at the top of the card and fades out over
+  // the first stretch of scroll, so it starts disappearing as soon as the guest
+  // scrolls and is not left hanging over the page for the whole read.
+  //
+  // The fade is on the wrapper and the drop-in keyframe is on the <img> inside
+  // it, deliberately: both animate opacity, and two systems writing opacity on
+  // the same element would fight, with whichever started last winning.
+  useEffect(() => {
+    if (!revealed) return undefined;
+    const el = chandelierRef.current;
+    if (!el) return undefined;
+    // Reduced motion: the chandelier is already at full opacity and stays put.
+    if (reduced) return undefined;
+
+    const tween = gsap.fromTo(
+      el,
+      { opacity: 1 },
+      {
+        opacity: 0,
+        ease: 'none',
+        scrollTrigger: {
+          trigger: el,
+          start: 'top top',
+          // 60% of a viewport of scrolling, not just the height of the
+          // chandelier, so the fade is slow enough to read as a fade.
+          end: () => `+=${window.innerHeight * 0.6}`,
+          scrub: true,
+          invalidateOnRefresh: true
+        }
+      }
+    );
+
+    return () => {
+      tween.scrollTrigger?.kill();
+      tween.kill();
+    };
+  }, [revealed, reduced]);
+
+  // The names float gently where they stand. This is a continuous idle drift,
+  // separate from the entrance: SplitText animates the characters, this animates
+  // each name box, so the two do not touch the same property.
+  //
+  // Long and yoyoed with a sine ease, which is what makes it read as floating
+  // rather than pulsing: sine.inOut spends most of its time near the extremes,
+  // so the names hang almost still and drift between them.
+  useEffect(() => {
+    if (!revealed) return undefined;
+    const root = namesRef.current;
+    if (!root) return undefined;
+    if (reduced) return undefined;
+
+    const targets = gsap.utils.toArray('.names .split-parent', root);
+    if (!targets.length) return undefined;
+
+    const tween = gsap.to(targets, {
+      y: '+=0.55rem',
+      x: '+=0.3rem',
+      duration: 5.5,
+      ease: 'sine.inOut',
+      stagger: 0.9,
+      repeat: -1,
+      yoyo: true
+    });
+
+    return () => {
+      tween.kill();
+      gsap.set(targets, { clearProps: 'transform' });
+    };
+  }, [revealed, reduced]);
+
   // The gate is removed from the DOM on open, which drops focus to <body> and
   // loses the screen reader's place. Move it to the names so the visitor
   // continues inside the invitation.
@@ -184,22 +262,26 @@ export default function Invitation({ revealed, focusNames = false }) {
         <article className="sheet">
           <header className="opening">
             {/* In its own supplied colour, untouched: no mask, no overlay, no
-                scrim, no tint, no gradient, no filter. 358x376 is its real
-                intrinsic size, so the ratio is 0.952 and not 1 -- forcing 1:1
-                would stretch it by about 5%.
+                scrim, no tint, no gradient, no filter, and no shadow of any
+                kind. 358x376 is its real intrinsic size, so the ratio is 0.952
+                and not 1 -- forcing 1:1 would stretch it by about 5%.
 
-                position: fixed, so it stays at the top of the screen instead of
-                travelling with the scroll. It is out of flow, so the header
-                reserves its height via --chandelier-h to keep the first line of
-                text clear of it. */}
-            <img
-              className="chandelier"
-              src={asset('vectors/thorya.png')}
-              alt=""
-              width="358"
-              height="376"
-              aria-hidden="true"
-            />
+                It is NOT fixed. It sits at the top of the card in the normal
+                flow, and the wrapper fades it out over the first stretch of
+                scroll, so it begins to disappear as soon as the guest scrolls
+                instead of hovering over the page for the whole read. Because it
+                is in flow it needs no reserved height: .opening no longer pads
+                space for it, and the text that lifted itself above it with a
+                z-index no longer has to. */}
+            <div className="chandelier-wrap" ref={chandelierRef} aria-hidden="true">
+              <img
+                className="chandelier"
+                src={asset('vectors/thorya.png')}
+                alt=""
+                width="358"
+                height="376"
+              />
+            </div>
 
             <Art
               file="vectors/bsm.png"
@@ -216,7 +298,18 @@ export default function Invitation({ revealed, focusNames = false }) {
 
             {/* One element per line so each animates on its own as it is
                 reached. The kashida runs inside each string are the supplied
-                ones, untouched. */}
+                ones, untouched.
+
+                splitType is "words", not "chars", and this is not a stylistic
+                choice. An Arabic letter takes its shape from its neighbours, so
+                a shaping run is only correct while the letters stay together in
+                one run of text. Wrapping every character in its own inline-block
+                -- which is what splitType="chars" does -- gives each letter a
+                run of its own: every letter falls back to its isolated form and
+                the words come out looking broken and disconnected, which is
+                exactly what was wrong with the Arabic on a phone. Splitting on
+                word boundaries keeps each word's letters adjacent and joined
+                while still animating them in a stagger. */}
             {VERSE.map((line) => (
               <SplitText
                 key={line}
@@ -224,8 +317,8 @@ export default function Invitation({ revealed, focusNames = false }) {
                 tag="p"
                 dir="rtl"
                 className="verse"
-                splitType="chars"
-                delay={reduced ? 0 : 16}
+                splitType="words"
+                delay={reduced ? 0 : 90}
                 duration={1.2}
                 ease="power3.out"
                 from={{ opacity: 0, y: 28 }}
@@ -257,6 +350,8 @@ export default function Invitation({ revealed, focusNames = false }) {
           <div className="details">
             <div className="detail">
               <Art file="vectors/date.png" ratio={1} className="art--icon" data-fade />
+              {/* Latin run, so chars: there is no shaping to break, and it is
+                  the per-character stagger that looks right here. */}
               <SplitText
                 text="15 . 10 . 2026"
                 tag="span"
@@ -272,22 +367,37 @@ export default function Invitation({ revealed, focusNames = false }) {
                 reduced={reduced}
               />
             </div>
+
+            {/* Straight after the date, because the countdown is about the date
+                and the eye should not have to travel past the venue to find it. */}
+            <Countdown />
+
             <div className="detail">
-              <Art file="vectors/gps.png" ratio={1} className="art--icon" data-fade />
-              <SplitText
-                text="صالة عزوز للافراح والمناسبات"
-                tag="span"
-                dir="rtl"
-                lang="ar"
-                className="detail__value"
-                splitType="chars"
-                delay={reduced ? 0 : 22}
-                duration={1.1}
-                ease="power3.out"
-                from={{ opacity: 0, y: 24 }}
-                to={{ opacity: 1, y: 0 }}
-                reduced={reduced}
-              />
+              {/* The whole venue block is the link, so the pin and the name are
+                  both a comfortable tap target. */}
+              <a
+                className="detail detail--link"
+                href={MAPS_URL}
+                target="_blank"
+                rel="noopener noreferrer"
+                aria-label="قاعة عزوز للافراح والمناسبات — افتح الموقع في خرائط جوجل"
+              >
+                <Art file="vectors/gps.png" ratio={1} className="art--icon" data-fade />
+                <SplitText
+                  text="قاعة عزوز للافراح والمناسبات"
+                  tag="span"
+                  dir="rtl"
+                  lang="ar"
+                  className="detail__value"
+                  splitType="words"
+                  delay={reduced ? 0 : 80}
+                  duration={1.1}
+                  ease="power3.out"
+                  from={{ opacity: 0, y: 24 }}
+                  to={{ opacity: 1, y: 0 }}
+                  reduced={reduced}
+                />
+              </a>
             </div>
           </div>
 
@@ -307,8 +417,8 @@ export default function Invitation({ revealed, focusNames = false }) {
                 dir="rtl"
                 lang="ar"
                 className="notes__line"
-                splitType="chars"
-                delay={reduced ? 0 : 20}
+                splitType="words"
+                delay={reduced ? 0 : 90}
                 duration={1.05}
                 ease="power3.out"
                 from={{ opacity: 0, y: 20 }}
@@ -319,6 +429,10 @@ export default function Invitation({ revealed, focusNames = false }) {
           </div>
         </article>
       </main>
+
+      {/* Last in the tree and above the card, so the petals drift over the
+          writing as well as over the background. Decorative and inert. */}
+      <Petals />
     </>
   );
 }

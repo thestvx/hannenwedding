@@ -19,13 +19,14 @@
   font-display: swap;
 }
 
-/* The Arabic face. Tajawal ships here as a single Bold weight, so it is
-   declared at 700 and the CSS asks for 700: declaring it lighter would make the
-   browser synthesise a bold from a face that has none. */
+/* The Arabic face: JF Flat, a single Regular weight.
+   It is declared at 400 and the CSS asks for 400. The file has no bold in it,
+   so asking for 700 would make the browser synthesise a heavier face out of a
+   regular one, which is what smeared the Arabic on phones. */
 @font-face {
-  font-family: 'Tajawal';
-  src: url('./fonts/Tajawal-Bold.ttf') format('truetype');
-  font-weight: 700;
+  font-family: 'JF Flat';
+  src: url('./fonts/JF Flat regular.ttf') format('truetype');
+  font-weight: 400;
   font-style: normal;
   font-display: swap;
 }
