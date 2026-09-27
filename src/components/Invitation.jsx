@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 
-import ScrollFloat from './ScrollFloat.jsx';
+import SplitText from './SplitText.jsx';
 
 // Assets live in public/, so they are referenced by path rather than imported
 // (Vite does not process imports out of the public directory).
@@ -25,19 +25,16 @@ const VERSE = [
 ];
 
 /**
- * The bismillah, the icons and the chandelier are all used as CSS masks: the
- * shape, proportions and antialiasing are the original pixels' alpha, and only
- * the fill changes.
+ * The bismillah and the icons are near-black (#392d2d) drawings on a
+ * transparent ground, used as CSS masks and filled with a light tone: the
+ * shapes, proportions and antialiasing are the original pixels, only the colour
+ * changes to suit the darker middle of background03.
  *
- * The fill is not uniform, and deliberately so. --art-tone is a light cream,
- * which is what the bismillah and the icons need because they sit on the dark
- * middle of background03. The chandelier sits at the very top, where that
- * background is light (median luminance 172/255), so a light fill would score
- * only 2.1:1 against it and read as a smudge. It takes the supplied near-black
- * #392d2d instead, which scores 3.9:1 there -- the same colour family as the
- * bismallah, but chosen for the ground it actually stands on.
+ * The chandelier is the exception and is deliberately NOT masked or recoloured
+ * -- it is an <img> in its own supplied colour, with no overlay, scrim, tint,
+ * gradient or filter of any kind.
  */
-function Art({ file, ratio, tone, className = '', ...rest }) {
+function Art({ file, ratio, className = '', ...rest }) {
   const url = `url("${asset(file)}")`;
   return (
     <span
@@ -45,8 +42,7 @@ function Art({ file, ratio, tone, className = '', ...rest }) {
       style={{
         maskImage: url,
         WebkitMaskImage: url,
-        aspectRatio: String(ratio),
-        ...(tone ? { backgroundColor: tone } : null)
+        aspectRatio: String(ratio)
       }}
       aria-hidden="true"
       {...rest}
@@ -73,41 +69,33 @@ function usePrefersReducedMotion() {
   return reduced;
 }
 
+// Hanene and Smail are Latin runs inside a dir="rtl" document, so dir="ltr"
+// is passed through to SplitText: once each character is its own inline-block
+// the base direction would otherwise reverse the run.
 const NAME_WORDS = [
-  { text: 'Hanene', className: 'names__line', start: 'top bottom-=12%' },
-  { text: '&', className: 'names__amp', start: 'top bottom-=8%' },
-  { text: 'Smail', className: 'names__line', start: 'top bottom-=12%' }
+  { text: 'Hanene', className: 'names__line' },
+  { text: '&', className: 'names__amp' },
+  { text: 'Smail', className: 'names__line' }
 ];
 
 function Names({ reduced }) {
-  // Under reduced motion the words are rendered as plain text in the same
-  // wrappers ScrollFloat emits, so they are readable and fully opaque with no
-  // scrub, scale or float. The supplied component is left untouched.
-  if (reduced) {
-    return (
-      <>
-        {NAME_WORDS.map((w) => (
-          <span className={`scroll-float names__float${w.className === 'names__amp' ? ' names__float--amp' : ''}`} key={w.text}>
-            <span className={`scroll-float-text ${w.className}`}>{w.text}</span>
-          </span>
-        ))}
-      </>
-    );
-  }
-
   return (
     <>
       {NAME_WORDS.map((w) => (
-        <ScrollFloat
-          as="span"
+        <SplitText
           key={w.text}
-          containerClassName={`names__float${w.className === 'names__amp' ? ' names__float--amp' : ''}`}
-          textClassName={w.className}
-          scrollStart={w.start}
-          scrollEnd="top center"
-        >
-          {w.text}
-        </ScrollFloat>
+          text={w.text}
+          tag="span"
+          dir="ltr"
+          className={w.className}
+          splitType="chars"
+          delay={reduced ? 0 : 26}
+          duration={1.15}
+          ease="power3.out"
+          from={{ opacity: 0, y: 46 }}
+          to={{ opacity: 1, y: 0 }}
+          reduced={reduced}
+        />
       ))}
     </>
   );
@@ -118,9 +106,9 @@ export default function Invitation({ revealed, focusNames = false }) {
   const namesRef = useRef(null);
   const reduced = usePrefersReducedMotion();
 
-  // The scroll reveals for everything except the names, which are driven by
-  // GSAP ScrollTrigger inside ScrollFloat. Two systems never touch the same
-  // element, so they cannot fight over opacity.
+  // The scroll reveals for the artwork, which is driven here. The text is not
+  // in this system at all -- it is driven by GSAP inside SplitText. Two systems
+  // never touch the same element, so they cannot fight over opacity.
   useEffect(() => {
     if (!revealed) return undefined;
 
@@ -130,8 +118,10 @@ export default function Invitation({ revealed, focusNames = false }) {
     // Two groups, two behaviours:
     //   [data-reveal] rises and fades as it is reached
     //   [data-fade]   fades only, with no travel
-    // The names are driven by GSAP ScrollFloat instead, and are in neither
-    // group, so no two systems ever write to the same element's opacity.
+    // The text is driven by GSAP SplitText instead, and is in neither group, so
+    // no two systems ever write to the same element's opacity. That is why the
+    // icons carry data-fade themselves rather than their .details wrapper
+    // carrying data-reveal: the wrapper also holds SplitText-driven text.
     const targets = Array.from(root.querySelectorAll('[data-reveal], [data-fade]'));
     if (!targets.length) return undefined;
 
@@ -193,14 +183,22 @@ export default function Invitation({ revealed, focusNames = false }) {
       >
         <article className="sheet">
           <header className="opening">
-            {/* Large, anchored to the very top of the page, and dropped in from
-                above on entry. 358x376 is its real intrinsic size, so the
-                aspect-ratio is 0.952 and not 1 -- forcing 1:1 would squash it. */}
-            <Art
-              file="vectors/thorya.png"
-              ratio={358 / 376}
-              tone="#392d2d"
-              className="art--chandelier"
+            {/* In its own supplied colour, untouched: no mask, no overlay, no
+                scrim, no tint, no gradient, no filter. 358x376 is its real
+                intrinsic size, so the ratio is 0.952 and not 1 -- forcing 1:1
+                would stretch it by about 5%.
+
+                position: fixed, so it stays at the top of the screen instead of
+                travelling with the scroll. It is out of flow, so the header
+                reserves its height via --chandelier-h to keep the first line of
+                text clear of it. */}
+            <img
+              className="chandelier"
+              src={asset('vectors/thorya.png')}
+              alt=""
+              width="358"
+              height="376"
+              aria-hidden="true"
             />
 
             <Art
@@ -216,13 +214,24 @@ export default function Invitation({ revealed, focusNames = false }) {
               data-fade
             />
 
-            {/* One element per line so each fades in on its own as it is
+            {/* One element per line so each animates on its own as it is
                 reached. The kashida runs inside each string are the supplied
                 ones, untouched. */}
             {VERSE.map((line) => (
-              <p className="verse" lang="ar" data-fade key={line}>
-                {line}
-              </p>
+              <SplitText
+                key={line}
+                text={line}
+                tag="p"
+                dir="rtl"
+                className="verse"
+                splitType="chars"
+                delay={reduced ? 0 : 16}
+                duration={1.2}
+                ease="power3.out"
+                from={{ opacity: 0, y: 28 }}
+                to={{ opacity: 1, y: 0 }}
+                reduced={reduced}
+              />
             ))}
           </header>
 
@@ -242,19 +251,43 @@ export default function Invitation({ revealed, focusNames = false }) {
             <i className="rule__line" />
           </div>
 
-          {/* icon on its own line, the value on the line below it */}
-          <div className="details" data-reveal>
+          {/* icon on its own line, the value on the line below it. The icons
+              carry the reveal so they are not double-animated along with the
+              text that SplitText now drives. */}
+          <div className="details">
             <div className="detail">
-              <Art file="vectors/date.png" ratio={1} className="art--icon" />
-              <span className="detail__value" lang="en" dir="ltr">
-                15 . 10 . 2026
-              </span>
+              <Art file="vectors/date.png" ratio={1} className="art--icon" data-fade />
+              <SplitText
+                text="15 . 10 . 2026"
+                tag="span"
+                dir="ltr"
+                lang="en"
+                className="detail__value detail__value--latin"
+                splitType="chars"
+                delay={reduced ? 0 : 40}
+                duration={1}
+                ease="power3.out"
+                from={{ opacity: 0, y: 22 }}
+                to={{ opacity: 1, y: 0 }}
+                reduced={reduced}
+              />
             </div>
             <div className="detail">
-              <Art file="vectors/gps.png" ratio={1} className="art--icon" />
-              <span className="detail__value" lang="ar">
-                صالة عزوز للافراح والمناسبات
-              </span>
+              <Art file="vectors/gps.png" ratio={1} className="art--icon" data-fade />
+              <SplitText
+                text="صالة عزوز للافراح والمناسبات"
+                tag="span"
+                dir="rtl"
+                lang="ar"
+                className="detail__value"
+                splitType="chars"
+                delay={reduced ? 0 : 22}
+                duration={1.1}
+                ease="power3.out"
+                from={{ opacity: 0, y: 24 }}
+                to={{ opacity: 1, y: 0 }}
+                reduced={reduced}
+              />
             </div>
           </div>
 
@@ -264,14 +297,25 @@ export default function Invitation({ revealed, focusNames = false }) {
             <i className="rule__line" />
           </div>
 
-          <div className="notes" data-reveal>
-            <Art file="vectors/pin.png" ratio={1} className="art--icon art--icon--pin" />
-            <p className="notes__line" lang="ar">
-              يمنع اصطحاب الأطفال
-            </p>
-            <p className="notes__line" lang="ar">
-              ممنوع التصوير لطفلياً
-            </p>
+          <div className="notes">
+            <Art file="vectors/pin.png" ratio={1} className="art--icon art--icon--pin" data-fade />
+            {['يمنع اصطحاب الأطفال', 'ممنوع التصوير لطفلياً'].map((line) => (
+              <SplitText
+                key={line}
+                text={line}
+                tag="p"
+                dir="rtl"
+                lang="ar"
+                className="notes__line"
+                splitType="chars"
+                delay={reduced ? 0 : 20}
+                duration={1.05}
+                ease="power3.out"
+                from={{ opacity: 0, y: 20 }}
+                to={{ opacity: 1, y: 0 }}
+                reduced={reduced}
+              />
+            ))}
           </div>
         </article>
       </main>

@@ -18,3 +18,14 @@
   font-style: normal;
   font-display: swap;
 }
+
+/* The Arabic face. Tajawal ships here as a single Bold weight, so it is
+   declared at 700 and the CSS asks for 700: declaring it lighter would make the
+   browser synthesise a bold from a face that has none. */
+@font-face {
+  font-family: 'Tajawal';
+  src: url('./fonts/Tajawal-Bold.ttf') format('truetype');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}

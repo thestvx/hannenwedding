@@ -21,6 +21,14 @@
      property of the text, not of the picture. */
   --halo: 0 0 10px rgba(22, 13, 11, 0.92), 0 0 3px rgba(22, 13, 11, 0.85);
 
+  /* The chandelier, in one place. 358/376 is its real intrinsic ratio; 100% is
+     written as vw, not a percentage, because the chandelier is position: fixed
+     and so resolves percentages against the viewport, while the header that
+     reserves its height resolves them against the padded page. vw is the same
+     in both, so the reserved height and the drawn height cannot drift. */
+  --chandelier-w: min(26rem, 92vw);
+  --chandelier-h: calc(var(--chandelier-w) / 0.95213);
+
   --gutter: clamp(1.35rem, 5.5vw, 2.5rem);
   --measure: 33rem;
 }
@@ -42,8 +50,10 @@ body {
   min-height: 100svh;
   background-color: var(--paper);
   color: var(--ink);
-  font-family: 'Janna', 'Segoe UI', system-ui, sans-serif;
-  font-weight: 300;
+  font-family: 'Tajawal', 'Segoe UI', system-ui, sans-serif;
+  /* Tajawal ships as a single Bold weight, so this asks for it by name rather
+     than letting the browser synthesise a bold from a light face. */
+  font-weight: 700;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   overflow-x: hidden;
@@ -94,6 +104,9 @@ body.is-sealed .invitation {
   flex-direction: column;
   align-items: center;
   width: 100%;
+  /* the chandelier is fixed and out of flow, so its height is reserved here
+     rather than by the image itself */
+  padding-top: calc(var(--chandelier-h) + 3svh);
 }
 
 /* --- the masked artwork ---------------------------------------------
@@ -133,22 +146,34 @@ body.is-sealed .invitation {
 }
 
 .art--icon {
-  width: clamp(1.7rem, 7vw, 2.2rem);
+  width: clamp(2rem, 8vw, 2.6rem);
   margin-inline: auto;
 }
 
 .art--icon--pin {
-  width: clamp(1.9rem, 7.5vw, 2.4rem);
+  width: clamp(2.2rem, 8.5vw, 2.8rem);
   margin-bottom: 0.8svh;
 }
 
 /* --- text ----------------------------------------------------------- */
 
+/* The verse is full-bleed, like the names.
+   Each supplied line carries hard-coded kashida runs, so its width is fixed by
+   the character count and scales only with the font size -- the longest line
+   needs 22.8x the font size in pixels. In the 33rem measure that caps the
+   verse well below the rest of the page, and the runs then wrap the line onto a
+   second row, which is no longer the line that was supplied. Full-bleed buys
+   back the gutters; the size below is the largest that still keeps all three
+   lines on one row at every viewport.
+   Note this is why the verse is the one element that could not be enlarged
+   along with everything else. */
 .verse {
+  width: 100vw;
   margin: 0;
-  max-width: 28rem;
-  font-size: clamp(0.95rem, 4.1vw, 1.45rem);
-  line-height: 2.15;
+  margin-inline: calc(50% - 50vw);
+  padding-inline: 2vw;
+  font-size: clamp(0.88rem, 3.9vw, 1.45rem);
+  line-height: 2.1;
   color: var(--ink);
   text-shadow: var(--halo);
   text-wrap: pretty;
@@ -193,10 +218,19 @@ body.is-sealed .invitation {
   margin-top: 8svh;
 }
 
-/* --- names: driven by GSAP ScrollTrigger inside ScrollFloat ---------- */
+/* --- names ------------------------------------------------------------
+   These are the widest thing on the page, and they were being cut off at the
+   sides: the measure is only 33rem, while "Hanene" at 16vw is wider than that.
+
+   So the names are pulled out of the padded measure to the full viewport width
+   (the negative margin re-centres them, since 100vw includes the scrollbar).
+   That is the "more room" the names need in order to be shown whole. */
 
 .names {
+  width: 100vw;
   margin: 9svh 0 0;
+  margin-inline: calc(50% - 50vw);
+  padding-inline: 2vw;
   font-family: 'Bettrisia', 'Snell Roundhand', cursive;
   font-weight: 400;
   color: var(--ink);
@@ -206,29 +240,29 @@ body.is-sealed .invitation {
   text-shadow: var(--halo);
 }
 
-.names__float {
-  display: block;
-  width: 100%;
-}
-
-/* more specific than .scroll-float-text so these win regardless of the order
-   the two stylesheets are injected in */
-.names .scroll-float-text {
+/* SplitText sets overflow:hidden inline, to mask its characters as they rise.
+   A script face like Bettrisia throws well outside the em box -- long ascenders
+   above and a long tail below -- and a 1.05 line-height put both outside that
+   clip, which is what cut the tops off. The generous line-height and the
+   padding are inside the clip, so the swashes now have somewhere to go. */
+.names .split-parent {
+  max-width: 100%;
   font-family: inherit;
   font-weight: 400;
-  line-height: 1.05;
+  line-height: 1.45;
+  padding-block: 0.18em;
 }
 
 .names .names__line {
-  font-size: clamp(3.2rem, 16vw, 5.6rem);
+  font-size: clamp(2.8rem, 15vw, 6rem);
 }
 
 .names .names__amp {
   display: block;
-  font-size: clamp(1.4rem, 7vw, 2.4rem);
-  line-height: 1.1;
+  font-size: clamp(1.5rem, 7vw, 2.6rem);
+  line-height: 1.3;
   color: var(--ink-2);
-  margin-block: 0.14em 0.08em;
+  margin-block: 0.1em 0.06em;
 }
 
 /* --- details: the icon sits on its own line, the value below it ------- */
@@ -252,10 +286,16 @@ body.is-sealed .invitation {
 }
 
 .detail__value {
-  font-size: clamp(1.05rem, 4.6vw, 1.5rem);
+  font-size: clamp(1.15rem, 5.2vw, 1.85rem);
   line-height: 1.6;
   letter-spacing: 0.01em;
   text-align: center;
+}
+
+/* Latin run: SplitText wraps every character, so it needs the same room the
+   names do, and the base direction would reverse it otherwise (dir="ltr"). */
+.detail__value--latin {
+  padding-inline: 4vw;
 }
 
 /* --- notes ----------------------------------------------------------- */
@@ -272,7 +312,7 @@ body.is-sealed .invitation {
 
 .notes__line {
   margin: 0;
-  font-size: clamp(1.05rem, 4.5vw, 1.32rem);
+  font-size: clamp(1.2rem, 5.4vw, 1.7rem);
   line-height: 1.95;
   letter-spacing: 0.01em;
 }
@@ -304,20 +344,41 @@ body.is-sealed .invitation {
 }
 
 /* --- the chandelier ---------------------------------------------------
-   Dropped in from above the page once the gate is gone. The offset is a share
+   In its own supplied colour, untouched: no mask, no overlay, no scrim, no
+   tint, no gradient, no filter.
+
+   position: fixed, so it stays at the top of the screen and does not travel
+   with the scroll. It is out of flow, so the header reserves its height with
+   padding-top (see .opening) to keep the first text clear of it.
+
+   It sits at z-index 0, behind the text. A positioned box paints above
+   ordinary inline content regardless of z-index, so the rules just below lift
+   the type above it -- otherwise the type would disappear behind it. */
+
+.chandelier {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  margin-inline: auto;
+  z-index: 0;
+  display: block;
+  width: var(--chandelier-w);
+  height: auto;
+  aspect-ratio: 358 / 376;
+  /* purely decorative, and it covers a lot of screen: it must never eat a
+     click meant for the text underneath it */
+  pointer-events: none;
+  opacity: 0;
+}
+
+/* dropped in from above the page once the gate is gone. The offset is a share
    of the viewport rather than a rem, so it clears the top edge on a short
    landscape screen too.
    The animation is armed by .is-open rather than running on load: the
    invitation is mounted (and hidden) behind the gate, so a plain animation
    would play unseen and be over before the visitor ever saw it. */
-
-.art--chandelier {
-  width: min(100%, 26rem);
-  margin-bottom: 5svh;
-  opacity: 0;
-}
-
-.invitation.is-open .art--chandelier {
+.invitation.is-open .chandelier {
   animation: chandelier-drop 1.15s cubic-bezier(0.22, 0.61, 0.36, 1) forwards;
 }
 
@@ -330,6 +391,13 @@ body.is-sealed .invitation {
     opacity: 1;
     transform: translateY(0);
   }
+}
+
+/* Keep the type readable over the fixed chandelier. */
+.sheet > *,
+.opening > *:not(.chandelier) {
+  position: relative;
+  z-index: 1;
 }
 
 /* ============================== the gate ==============================
@@ -376,20 +444,20 @@ body.is-sealed .invitation {
 /* ============================== responsive ============================== */
 
 @media (min-width: 48rem) {
+  :root {
+    --chandelier-w: min(32rem, 92vw);
+  }
+
   .invitation {
     padding-block: 3svh 30svh;
   }
 
-  .art--chandelier {
-    width: 32rem;
-  }
-
   .names .names__line {
-    font-size: 5.2rem;
+    font-size: 6.6rem;
   }
 
   .names .names__amp {
-    font-size: 2.2rem;
+    font-size: 2.6rem;
   }
 
   .rule--broad {
@@ -408,7 +476,7 @@ body.is-sealed .invitation {
 
 @media (prefers-reduced-motion: reduce) {
   /* the chandelier arrives, but it does not travel: opacity only, no drop */
-  .invitation.is-open .art--chandelier {
+  .invitation.is-open .chandelier {
     animation: none;
     opacity: 1;
   }
@@ -427,5 +495,12 @@ body.is-sealed .invitation {
 
   .gate {
     transition-duration: 0.2s;
+  }
+
+  /* SplitText renders its text whole and unsplit under reduced motion, but the
+     inline overflow:hidden is still worth removing: nothing needs clipping
+     when no character moves. */
+  .split-parent {
+    overflow: visible !important;
   }
 }
