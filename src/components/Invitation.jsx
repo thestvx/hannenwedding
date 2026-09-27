@@ -86,6 +86,28 @@ const NAME_WORDS = [
   { text: 'Smail', className: 'names__line' }
 ];
 
+// The names arrive on the splitting-text motion: every character starts
+// off-axis and wrong-way-round and settles into place.
+//
+// These are the exact values of the `vibe` preset from the supplied
+// SplittingText component -- initial {y:50, scale:0.5, opacity:0, x:50, rotate:90}
+// to animate {y:0, scale:1, opacity:1, x:0, rotate:0} over 0.5s easeOut -- driven
+// through the GSAP splitter already in this project rather than the shadcn
+// primitive, and that is deliberate rather than a shortcut:
+//
+//   The names already run on GSAP. Introducing a second animation library on the
+//   same characters would have two systems writing the same transform, and the
+//   only question then is which one wins.
+//
+//   SplitText here already handles the two things that are easy to get wrong with
+//   per-character splitting of a Latin name inside a dir="rtl" document: the run
+//   keeps its own order (otherwise "Hanene" renders as "enenaH"), and under
+//   prefers-reduced-motion the text is never split at all, so no character is
+//   ever moved. Reimplementing that to switch libraries would be a downgrade.
+//
+// The 0.42em/0.36em padding on .names .split-parent is what the initial
+// transform needs: rotated 90 degrees and shifted 50px, a character would
+// otherwise be half-clipped by its own overflow box on the way in.
 function Names({ reduced }) {
   return (
     <>
@@ -97,11 +119,11 @@ function Names({ reduced }) {
           dir="ltr"
           className={w.className}
           splitType="chars"
-          delay={reduced ? 0 : 26}
-          duration={1.15}
-          ease="power3.out"
-          from={{ opacity: 0, y: 46 }}
-          to={{ opacity: 1, y: 0 }}
+          delay={reduced ? 0 : 30}
+          duration={0.5}
+          ease="easeOut"
+          from={{ opacity: 0, y: 50, x: 50, scale: 0.5, rotate: 90 }}
+          to={{ opacity: 1, y: 0, x: 0, scale: 1, rotate: 0 }}
           reduced={reduced}
         />
       ))}
@@ -273,52 +295,31 @@ export default function Invitation({ revealed, focusNames = false }) {
       >
         <article className="sheet">
           <header className="opening">
-            {/* In its own supplied colour, untouched: no mask, no overlay, no
-                scrim, no tint, no gradient, no filter, and no shadow of any
-                kind. thorayavideo.webm is the chandelier as a 6.5s transparent
-                loop, and it is played exactly as supplied -- the alpha in the
-                file is the alpha on the page, so there is nothing to mask and
-                nothing to recolour.
-
-                Its frame is 640x352, but the drawing inside it only occupies the
-                middle ~60% of the width and ~90% of the height, so the element
-                is sized from that measured content, not from the frame. See
-                --chandelier-frame-w in styles.css: sizing it off the frame
-                would have shrunk the chandelier by a third.
-
-                muted + autoplay + loop + playsInline is the only combination
-                browsers will autoplay at all, and playsInline is what stops iOS
-                from hijacking the page into fullscreen. Under reduced motion it
-                does not play: the first frame stands in, which is a still
-                photograph of the same drawing.
+            {/* thorya.png, in its own supplied colour, exactly as it was drawn.
+                Nothing is put behind it or on it -- no overlay, scrim, tint,
+                gradient, filter, mask, blend mode, background or shadow -- and it
+                is not stretched: 358x376 is its real ratio and the CSS keeps it.
 
                 It is NOT fixed. It sits at the top of the card in the normal
-                flow, and the wrapper fades it out over the first stretch of
-                scroll, so it begins to disappear as soon as the guest scrolls
-                instead of hovering over the page for the whole read. Because it
-                is in flow it needs no reserved height: .opening no longer pads
-                space for it, and the text that lifted itself above it with a
-                z-index no longer has to. */}
+                flow, and the wrapper around it is scrubbed to opacity 0 over
+                the first stretch of scroll, so it begins to disappear as soon as
+                the guest scrolls instead of hovering over the page for the whole
+                read. Because it is in flow it needs no reserved height: .opening
+                no longer pads space for it, and the text that lifted itself above
+                it with a z-index no longer has to.
+
+                The wrapper is a separate node precisely so the two opacity
+                animations cannot fight: the drop-in keyframe is on the <img>
+                and the scroll fade is on the wrapper, so neither ever writes
+                the other's property. */}
             <div className="chandelier-wrap" ref={chandelierRef} aria-hidden="true">
-              <video
+              <img
                 className="chandelier"
-                src={asset('vectors/thorayavideo.webm')}
-                width="640"
-                height="352"
-                muted
-                loop
-                playsInline
-                autoPlay={!reduced}
-                preload={reduced ? 'none' : 'auto'}
-                // A paused video with preload="none" has no decoded frame at
-                // all, so without a poster the chandelier renders as an empty
-                // box under reduced motion -- the drawing would simply be gone
-                // for the visitors who asked for less motion. The still is the
-                // same drawing, 154KB rather than 2.3MB, and it is only ever
-                // shown while the clip is not playing.
-                poster={asset('vectors/thorya.png')}
-                disablePictureInPicture
-                tabIndex={-1}
+                src={asset('vectors/thorya.png')}
+                alt=""
+                width="358"
+                height="376"
+                decoding="async"
               />
             </div>
 

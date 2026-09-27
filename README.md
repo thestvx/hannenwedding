@@ -44,7 +44,7 @@ functions/
   api/guestbook.js    Pages Function: validates, throttles, sends to Telegram
 public/
   background/         background03.png (card), background04.png (gate)
-  vectors/            thorayavideo, thorya (its poster), bsm, bark, date, gps, pin, namephoto
+  vectors/            thorya, bsm, bark, date, gps, pin, namephoto
   fonts/              JF Flat regular (Arabic body), Bettrisia Script Alt (names)
   fonts.css           @font-face declarations
   assets/svg/         favicon
@@ -99,9 +99,9 @@ shapes, proportions and antialiasing are the original pixels and only the fill
 changes. They sit on the dark middle of `background03`, so they take the light
 `--art-tone`.
 
-**The chandelier keeps its own colours.** `thorayavideo.webm` is not a near-black
-vector — it is a light cream drawing, and the still `thorya.png` used as its poster
-averages `rgb(207,204,199)` — so it is *not* masked and *not* recoloured. It is
+**The chandelier keeps its own colours.** `thorya.png` is not a near-black vector
+— it is a light cream drawing (mean `rgb(207,204,199)`) — so it is *not* masked
+ and *not* recoloured. It is
 dropped in as an ordinary element with no overlay, filter, `mix-blend-mode` or
 background, exactly as supplied. That was a deliberate correction: the previous
 build masked it to `#392d2d`, and the fix was rejected — the chandelier keeps the
@@ -129,39 +129,56 @@ the top of the card and fades out over the first 60% of a viewport of scrolling,
 driven by a `ScrollTrigger` scrub on the wrapper. Nothing is drawn under it: no
 `box-shadow`, no `filter`, no `::before`/`::after`, no scrim, and the stock
 `background03` is not darkened to compensate. The fade is on the wrapper and the
-drop-in keyframe is on the `<video>` inside it, deliberately — both animate opacity,
+drop-in keyframe is on the `<img>` inside it, deliberately — both animate opacity,
 and two systems writing opacity on the same element would fight, with whichever
 started last winning.
 
-It is a **video now, not a still**: `public/vectors/thorayavideo.webm`, the supplied
-transparent clip (`640×352`, 6.53s), played as `muted loop playsInline autoplay`
-with `disablePictureInPicture` and `tabIndex={-1}` — it is decoration, so it is
-`aria-hidden` and pointer-transparent. The intrinsic `width`/`height` attributes
-and `aspect-ratio: 640 / 352` are set so its space is reserved before it loads.
+It is `public/vectors/thorya.png` — the `358×376` still — sized from
+`--chandelier-w: min(26rem, 92vw)` (`min(32rem, 92vw)` on desktop) with
+`aspect-ratio: 358 / 376`, which is the file's own ratio. Forcing `1:1` would
+stretch the drawing by about 5%, so the ratio is asserted in the verifier against
+both the rendered box and `naturalWidth/naturalHeight`. A `thorayavideo.webm`
+transparent loop was tried in place of it and then reverted on request; nothing in
+the build references it and the file is no longer in the repository.
 
-It also carries `poster="vectors/thorya.png"`. Under reduced motion it does not
-autoplay and `preload` is `none`, and a paused video with nothing preloaded has no
-decoded frame at all — it renders as an empty box, so the chandelier would simply
-be **missing** for exactly the visitors who asked for less motion. The poster is
-the same drawing, so it is invisible as a choice, and it is `154KB` where the clip
-is `2.3MB`, which those visitors then never download. Verified by decoding the
-poster under `prefers-reduced-motion: reduce` and asserting the clip is paused.
-
-Its **box is wider than the screen on purpose**. The clip's own drawing occupies
-about 61% of the frame's width with transparent padding either side, so the frame
-is sized to `1.522 ×` the drawing's target width (`min(39.6rem, 140vw)`, and
-`min(48.7rem, 140vw)` on desktop) and pulled back onto the centre with
-`margin-inline: calc(50% - var(--chandelier-frame-w) / 2)`. Sizing it to `100vw`
-instead would shrink the chandelier by a third to reveal nothing but empty
-transparency. `html { overflow-x: clip }` is what keeps that from becoming a
-sideways scroll — `clip`, not `hidden`, because `hidden` would make the root a
-scroll container. The drop-in keyframe is on `y`, and `.chandelier-wrap` does not
-clip vertically, so the chandelier still falls in from above the fold.
+`html { overflow-x: clip }` is kept for a different reason now: `.names` and
+`.portrait__caption` are both `width: 100vw` pulled back onto the sheet with a
+negative inline margin, which overhangs by the width of a desktop scrollbar.
+`clip`, not `hidden`, because `hidden` would make the root a scroll container and
+break the `scrollIntoView` that both the gate and the reveal depend on.
 
 `ScrollSmoother` is deliberately *not* used. It wraps the page in a transformed
 element, which is unnecessary now that nothing is pinned, and it would also
 hijack touch scrolling on phones. The smooth feel comes from the eased tweens
 instead.
+
+**The names arrive on the splitting-text motion.** Each character comes in from
+`{ opacity: 0, y: 50, x: 50, scale: 0.5, rotate: 90 }` to
+`{ opacity: 1, y: 0, x: 0, scale: 1, rotate: 0 }` over `0.5s` `easeOut`, staggered
+`30ms`. Those are the exact values of the `vibe` preset from the supplied
+`animate-ui` `SplittingText` component, and the motion is asserted by sampling
+every character transform per frame while it plays: peak rotation `90.0°`,
+smallest scale `0.500`, largest offset `x 50.0 / y 50.0`, lowest opacity `0.00`,
+and a settled state of scale `1.000`, rotation `0.00°`, `x 0.00`, `y 0.00`,
+opacity `1`. Reading only the settled state would have passed a dead entrance.
+
+**It is the supplied motion, not the supplied package.** The values are passed
+through the GSAP `SplitText` already here rather than installing `motion` and the
+shadcn primitive, for three reasons: the names already run on GSAP and two
+libraries writing the same transform is only a question of which one wins; the
+local splitter already keeps a Latin run in its own order inside this `dir="rtl"`
+document (without that, `Hanene` renders as `enenaH`); and under
+`prefers-reduced-motion` it renders the text whole and never splits it at all, so
+no character is ever moved — all of which would have to be re-implemented to
+switch libraries. The `0.42em`/`0.36em` padding below is also what the entrance
+needs, since a character rotated `90°` and shifted `50px` would otherwise be
+half-clipped by its own overflow box on the way in.
+
+**The names are the subject of the card, so they are set large** —
+`clamp(3.1rem, 21.5vw, 8.4rem)` and `9.2rem` on desktop, the ampersand
+`clamp(1.6rem, 9.5vw, 3.4rem)`. The size is then measured as real ink rather than
+trusted: at `360×800` the widest name spans `75%` of the screen and still clears
+its clip on all four sides, and no viewport gains a sideways scroll.
 
 **The names float upward, slowly.** A continuous idle tween — `y -= 0.6rem`,
 `6.4s`, `sine.inOut`, `yoyo`, staggered `1.4s` — on each name block, so each name
