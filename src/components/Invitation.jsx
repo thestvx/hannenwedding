@@ -458,7 +458,7 @@ export default function Invitation({ revealed, focusNames = false }) {
               {/* Latin run, so chars: there is no shaping to break, and it is
                   the per-character stagger that looks right here. */}
               <SplitText
-                text="15 . 10 . 2026"
+                text="18 . 10 . 2026"
                 tag="span"
                 dir="ltr"
                 lang="en"

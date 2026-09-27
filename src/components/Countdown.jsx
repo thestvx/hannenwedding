@@ -3,16 +3,16 @@ import { useEffect, useState } from 'react';
 /**
  * Countdown to the wedding.
  *
- * TARGET is midnight local time on 15 October 2026 -- the date printed on the
+ * TARGET is midnight local time on 18 October 2026 -- the date printed on the
  * card. The ceremony time was never given, so this counts down to the start of
  * the day rather than to a guessed hour; change the two numbers below if the
  * hour is ever known.
  *
- * Built with Date(y, m, d) rather than the string "2026-10-15", because the
- * string form is parsed as UTC and would land on 14 October for anyone west of
+ * Built with Date(y, m, d) rather than the string "2026-10-18", because the
+ * string form is parsed as UTC and would land on 17 October for anyone west of
  * Greenwich -- an off-by-one-day countdown.
  */
-const TARGET = new Date(2026, 9, 15, 0, 0, 0, 0);
+const TARGET = new Date(2026, 9, 18, 0, 0, 0, 0);
 
 const SECOND = 1000;
 const MINUTE = 60 * SECOND;
@@ -79,8 +79,8 @@ export default function Countdown() {
 
       <p className="sr-only">
         {!reached && left
-          ? `موعد الزفاف يوم 15 أكتوبر 2026. متبقٍ ${left.days} يوم و ${left.hours} ساعة و ${left.minutes} دقيقة`
-          : 'موعد الزفاف يوم 15 أكتوبر 2026'}
+          ? `موعد الزفاف يوم 18 أكتوبر 2026. متبقٍ ${left.days} يوم و ${left.hours} ساعة و ${left.minutes} دقيقة`
+          : 'موعد الزفاف يوم 18 أكتوبر 2026'}
       </p>
     </section>
   );

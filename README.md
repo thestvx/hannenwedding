@@ -10,7 +10,7 @@ bismillah, the verse, the couple's photograph, their names, then the date, a
 countdown and the venue, then the notes, then a guestbook. Rose petals fall over
 the writing throughout.
 
-**هناء و إسماعيل — 15 أكتوبر 2026 — قاعة عزوز للافراح والمناسبات**
+**هناء و إسماعيل — 18 أكتوبر 2026 — قاعة عزوز للافراح والمناسبات**
 
 ---
 
@@ -35,7 +35,7 @@ src/components/
   Gate.jsx            background04 gate, full-bleed <button>, fade transition
   Invitation.jsx      background03 card, in-flow chandelier, portrait photo,
                       stacked details, maps link, names float
-  Countdown.jsx       days / hours / minutes / seconds to 15 October 2026
+  Countdown.jsx       days / hours / minutes / seconds to 18 October 2026
   Petals.jsx          fixed overlay of 16 falling rose petals
   SplitText.jsx       supplied GSAP text component, per-character or per-word
   Guestbook.jsx       name + message form, posts to the Pages Function
@@ -225,7 +225,7 @@ link, `target="_blank"` with `rel="noopener noreferrer"`, and it keeps the pin
 icon and the typography of the rest of the card — no underline, no browser blue.
 
 **The countdown** (`Countdown.jsx`) shows days, hours, minutes and seconds to
-`2026-10-15T00:00:00` local. Midnight local was chosen because no time of day was
+`2026-10-18T00:00:00` local. Midnight local was chosen because no time of day was
 given for the ceremony; change `TARGET` if there is one. The ticking row is
 `aria-hidden`, because a screen reader announcing four numbers every second is
 unusable, and a single `.sr-only` line states the date and the remaining days,
