@@ -76,6 +76,21 @@ const Sound = forwardRef(function Sound({ showToggle = false, needsGesture = fal
 
   useImperativeHandle(ref, () => ({ start }), [start]);
 
+  // Try for sound the instant the page opens.
+  //
+  // This is not a formality, and it is the closest thing to what a browser will
+  // actually permit. Measured, not assumed: with a normal Chrome this is
+  // refused with NotAllowedError, but for a visitor whose browser allows
+  // autoplay with sound -- they switched it on for the site, or Chrome's media
+  // engagement is high enough to wave them through -- the same call succeeds and
+  // the music is audible from the first moment, with no press at all. Adding the
+  // attempt therefore wins the whole audience that can be won, and costs the
+  // rest nothing: the refusal is swallowed here rather than surfaced, and the
+  // gate press below remains the fallback for them.
+  useEffect(() => {
+    start();
+  }, [start]);
+
   // No gate this visit, so wait for the first real press to start. Listeners
   // come off as soon as one fires, and also on unmount.
   useEffect(() => {

@@ -342,20 +342,35 @@ scale is dropped so it simply appears.
 
 **The music cannot autoplay, and no amount of markup changes that.** Every
 current browser refuses to start audio with sound until the document has been
-activated by a real press or key press. There is no attribute, no flag and no
-polyfill that lifts this on a public site — it is enforced at the browser level
-precisely because unsolicited audible pages are hostile. So the earliest moment
-the music can legally sound is the guest's own tap on the gate, which is the
-first thing they do anyway and therefore feels immediate rather than delayed.
+activated by a real press or key press. This was measured rather than assumed,
+in Chrome, with the shipped defaults left alone:
 
-That is why `Sound.jsx` exposes an imperative `start()` through a ref instead of
-waiting on a prop. `Gate` calls `onGesture` **synchronously from inside its click
-handler**, before any of the opening work: the audio element has to be played on
-the gesture's own task. Calling `play()` from the `setTimeout` that reveals the
-card 620ms later is the obvious way to write this and the wrong one — the
-gesture has expired by then and iOS treats it as unprompted, so the music would
-never start on a phone. Verified in a real browser with the autoplay policy left
-at its default, not disabled: the press is what makes `play()` resolve.
+| attempt | normal visitor | visitor who allows autoplay-with-sound |
+| --- | --- | --- |
+| `audio.play()` on load, with sound | `NotAllowedError` | **plays, immediately** |
+| `<audio muted>` autoplay, then `muted = false` with no gesture | blocked, and unmuting is the guarded operation anyway | plays |
+
+So `Sound.jsx` calls `play()` on mount as well. That is not decoration: it is
+what makes the music audible the instant the page opens for the audience that
+the browser will allow it to, which is everyone who has switched autoplay on for
+the site and anyone Chrome waves through on media engagement. For the rest the
+refusal is swallowed rather than surfaced, and it costs them nothing, because
+the gate press is there behind it. Verified both ways in a real browser: with
+autoplay permitted the audio is at `t=2.6s` and rising before any press, and
+with the default policy it is silent until the gate is tapped.
+
+**A page cannot guarantee sound on arrival.** If this has to be certain, it
+cannot be a web page — or the guest has to allow autoplay for the site. The
+honest version of "plays by itself" is the table above, and this is the most of
+it a browser will give.
+
+That is why `Sound.jsx` also exposes an imperative `start()` through a ref
+instead of waiting on a prop. `Gate` calls `onGesture` **synchronously from
+inside its click handler**, before any of the opening work: the audio element
+has to be played on the gesture's own task. Calling `play()` from the `setTimeout`
+that reveals the card 620ms later is the obvious way to write this and the wrong
+one — the gesture has expired by then and iOS treats it as unprompted, so the
+music would never start on a phone.
 
 On a **revisit** the gate is skipped, so there is no tap to hang the start on.
 `Sound` then waits for the first `pointerdown`/`touchstart`/`keydown` anywhere on
