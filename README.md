@@ -35,6 +35,7 @@ src/components/
   Gate.jsx            background04 gate, full-bleed <button>, fade transition
   Invitation.jsx      background03 card, in-flow chandelier, portrait photo,
                       stacked details, maps link, names float
+  Sound.jsx           background music, and the toggle that stops it
   Countdown.jsx       days / hours / minutes / seconds to 18 October 2026
   Petals.jsx          fixed overlay of 16 falling rose petals
   SplitText.jsx       supplied GSAP text component, per-character or per-word
@@ -338,6 +339,49 @@ the page, and it still needs to read as part of one composition rather than as a
 banner. It reveals on the same `[data-settle]` observer as the rest of the
 writing, scaling from `.94` to `1` over `1.15s`, and under reduced motion the
 scale is dropped so it simply appears.
+
+**The music cannot autoplay, and no amount of markup changes that.** Every
+current browser refuses to start audio with sound until the document has been
+activated by a real press or key press. There is no attribute, no flag and no
+polyfill that lifts this on a public site — it is enforced at the browser level
+precisely because unsolicited audible pages are hostile. So the earliest moment
+the music can legally sound is the guest's own tap on the gate, which is the
+first thing they do anyway and therefore feels immediate rather than delayed.
+
+That is why `Sound.jsx` exposes an imperative `start()` through a ref instead of
+waiting on a prop. `Gate` calls `onGesture` **synchronously from inside its click
+handler**, before any of the opening work: the audio element has to be played on
+the gesture's own task. Calling `play()` from the `setTimeout` that reveals the
+card 620ms later is the obvious way to write this and the wrong one — the
+gesture has expired by then and iOS treats it as unprompted, so the music would
+never start on a phone. Verified in a real browser with the autoplay policy left
+at its default, not disabled: the press is what makes `play()` resolve.
+
+On a **revisit** the gate is skipped, so there is no tap to hang the start on.
+`Sound` then waits for the first `pointerdown`/`touchstart`/`keydown` anywhere on
+the page. A scroll is deliberately not one of them: it does not count as
+activation in Chrome, so listening for it would leave the music silently blocked
+forever.
+
+**Sound that starts on its own needs a way to stop it.** The toggle is a real
+`<button>` with `aria-pressed` and an Arabic `aria-label` that changes with the
+state, so it works from the keyboard and announces as a switch. Turning it off
+writes `hanene.sound = off` to `localStorage`, and **nothing autostarts while
+that is set** — a visitor who silenced it once is not ambushed by it on their
+next visit, which is the whole reason the preference is stored rather than
+defaulted. The music also pauses when the tab is hidden, since a wedding card is
+the sort of thing people leave open in another tab. Volume is `0.3`: audible
+under the writing, not competing with it. `preload="auto"` costs the 1.4MB fetch
+up front so the music is ready on the press instead of stuttering into life.
+
+It is docked to the **top** inline-end corner, which was not the first choice.
+The bottom corner is more reachable, but the guestbook runs full width, and
+measuring every scroll position showed a fixed button parked down there sitting
+on top of the message `textarea` — so a tap on the covered strip of the field
+would have hit the sound control instead. Nothing on the card is interactive at
+the top, and although the corner does clip the full-bleed `width: 100vw` names
+box, it was confirmed to miss the glyphs themselves at every scroll position on
+every viewport tested.
 
 **The guestbook is a server-side form, not a `fetch` from the page.**
 `Guestbook.jsx` posts a name and a message to `/api/guestbook`, which is a

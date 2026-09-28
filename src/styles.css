@@ -925,6 +925,69 @@ body.is-sealed .invitation {
   box-shadow: inset 0 0 0 3px rgba(107, 74, 69, 0.75);
 }
 
+/* --- the music toggle ----------------------------------------------------
+   z-index 20 puts it above the card (.invitation, 1) and below the petals
+   (.petals, 30), so a petal can drift over it harmlessly, and well below the
+   gate (40). It is not rendered at all until the card is open, so it never
+   ends up inside the gate's <button>.
+
+   Docked to the top inline-end corner rather than the bottom. It was tried at
+   the bottom first, which is the more reachable place, but the guestbook runs
+   full width and a fixed control parked over its textarea swallowed taps meant
+   for the message field -- measured, not assumed. Nothing on the card is
+   interactive at the top, so from up here the button can only ever sit over
+   the chandelier and the names, which are decorative and unreadable in that
+   corner anyway. */
+.sound {
+  position: fixed;
+  z-index: 20;
+  top: calc(0.9rem + env(safe-area-inset-top, 0px));
+  inset-inline-end: calc(0.9rem + env(safe-area-inset-right, 0px));
+  display: grid;
+  place-items: center;
+  /* 44px is the smallest comfortable touch target */
+  width: 2.75rem;
+  height: 2.75rem;
+  padding: 0;
+  border: 1px solid rgba(243, 230, 216, 0.32);
+  border-radius: 50%;
+  color: #f3e6d8;
+  /* dark and mostly opaque, so it stays readable over the card, over the
+     light part of background03, and over the photo */
+  background: rgba(28, 19, 18, 0.72);
+  backdrop-filter: blur(3px);
+  -webkit-backdrop-filter: blur(3px);
+  box-shadow: 0 1px 6px rgba(20, 12, 12, 0.5);
+  cursor: pointer;
+  appearance: none;
+  -webkit-appearance: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.sound:focus-visible {
+  outline: 2px solid #f3e6d8;
+  outline-offset: 2px;
+}
+
+.sound svg {
+  width: 1.4rem;
+  height: 1.4rem;
+  fill: currentColor;
+  stroke: currentColor;
+}
+
+.sound__body {
+  fill: currentColor;
+  stroke: none;
+}
+
+/* the waves and the cross are strokes, not fills */
+.sound__wave {
+  fill: none;
+  stroke-width: 1.7;
+  stroke-linecap: round;
+}
+
 /* fade the background out to hand over to the invitation */
 .gate.is-opening {
   opacity: 0;

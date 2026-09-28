@@ -1,7 +1,8 @@
-import { useLayoutEffect, useState } from 'react';
+import { useCallback, useLayoutEffect, useRef, useState } from 'react';
 
 import Gate from './components/Gate.jsx';
 import Invitation from './components/Invitation.jsx';
+import Sound from './components/Sound.jsx';
 
 const SEEN = 'hanene.gate.opened';
 
@@ -22,6 +23,14 @@ export default function App() {
   const [seen] = useState(alreadySeen);
   const [opened, setOpened] = useState(seen);
   const [showGate, setShowGate] = useState(!seen);
+
+  // The music cannot autoplay -- no browser will start audio with sound before
+  // the guest has pressed something -- so the gate's own press is the earliest
+  // legal moment, and it is the first thing they do anyway. start() has to be
+  // called from inside the click handler, not from the setTimeout that later
+  // reveals the card, or iOS treats it as unprompted.
+  const soundRef = useRef(null);
+  const startMusic = useCallback(() => soundRef.current?.start(), []);
 
   // Layout effect, not a passive one: the body has to be sealed before the
   // first paint, otherwise the invitation renders unlocked for a frame.
@@ -52,8 +61,12 @@ export default function App() {
 
   return (
     <>
+      {/* Mounted before the gate, so the <audio> is in the DOM by the time the
+          guest presses it. The button waits for the card, since it cannot sit
+          inside the gate -- that is a <button> already. */}
+      <Sound ref={soundRef} showToggle={opened} needsGesture={!showGate} />
       <Invitation revealed={opened} focusNames={!seen} />
-      {showGate && <Gate onEnter={enter} />}
+      {showGate && <Gate onEnter={enter} onGesture={startMusic} />}
     </>
   );
 }

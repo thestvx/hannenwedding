@@ -15,8 +15,14 @@ const asset = (p) => new URL(p.replace(/^\//, ''), document.baseURI).href;
  *
  * Shown once per session: a reload or a back-navigation goes straight to the
  * invitation, but closing the tab and coming back shows it again.
+ *
+ * onGesture is called synchronously from inside the press, before any of the
+ * opening work below. It exists for the music: browsers will not start audio
+ * with sound without a user gesture, and iOS in particular wants play() to be
+ * called on the gesture's own task rather than from the setTimeout that reveals
+ * the card 620ms later, by which point the gesture has expired.
  */
-export default function Gate({ onEnter }) {
+export default function Gate({ onEnter, onGesture }) {
   const [opening, setOpening] = useState(false);
 
   const fired = useRef(false);
@@ -39,6 +45,9 @@ export default function Gate({ onEnter }) {
   const enter = () => {
     if (fired.current) return;
     fired.current = true;
+
+    // same task as the press, so this is still a live user gesture
+    onGesture?.();
 
     try {
       sessionStorage.setItem(SEEN, '1');
